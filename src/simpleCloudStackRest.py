@@ -3,10 +3,7 @@ Created on Mar 10, 2016
 
 PROPS: https://cwiki.apache.org/confluence/display/CLOUDSTACK/Simple+class+for+making+API+calls,+Python
 '''
-api_url = 'http://sfucloud.ca:8080/client/api'
-apiKey = '6Lj2ZotMNCIW9xi9z1WROT9uOKZnrMelzAJ6hkTNj7HJDVykEvxAv8KmJ0uUAN_uRs-xNTr4ZbAjB3VMAYVUkg'
-secret = 'AWteZfbIn93DxMmCb75gghypMGPnYcBV-et__7M7xPMan1rTUWR5DVYLXrLLMTJrN35qOLaBlJrHhGPdo-N7Cg'
- 
+
 import hashlib, hmac, string, base64, urllib
 import json, urllib
  
