@@ -1,0 +1,7 @@
+Adding a Slave to Hadoop Cluster
+
+1. Create instance from template: SlaveNode-template
+2. Compute offering: sc.medium
+3. Change hostname to dlw-Slave*
+4. Update /etc/hosts file in all machines with the name and IP address of the new slave
+5. Update /home/hduser/hadoop-2.7.0/etc/hadoop-2.7.0/etc/hadoop/slaves file to contain names of all slave nodes
