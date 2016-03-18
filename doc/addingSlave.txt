@@ -5,6 +5,7 @@ Adding a Slave to Hadoop Cluster
 3. Change hostname to dlw-Slave*
 4. Update /etc/hosts file in all machines with the name and IP address of the new slave
 5. Update /home/hduser/hadoop-2.7.0/etc/hadoop-2.7.0/etc/hadoop/slaves file on all machines to contain names of all slave nodes
+6. Clean out the folder /home/hduser/hadoop-tmp/hdfs/datanode. this folder MUST be empty.
 
 -----
 
@@ -18,4 +19,5 @@ Manager workflow:
 6. Update Manager slaves file to include the new unique hostname
 7. Update Manager /etc/hosts to include the new unique hostname and the IP of the new instance
 8. Push slaves and /etc/hosts files to all machines in cluster, including the new instance.
-9. ssh to Master node and call start-dfs.sh
+9. ssh to new instance and clean the datanode folder
+10. ssh to Master node and call start-dfs.sh and start-yarn.sh
