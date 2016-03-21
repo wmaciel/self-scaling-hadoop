@@ -4,7 +4,7 @@ Adding a Slave to Hadoop Cluster
 2. Compute offering: sc.medium
 3. Change hostname to dlw-Slave*
 4. Update /etc/hosts file in all machines with the name and IP address of the new slave
-5. Update hadoop/slaves file on all machines to contain names of all slave nodes
+5. Update /home/hduser/hadoop-2.7.0/etc/hadoop/slaves file on all machines to contain names of all slave nodes
 6. Clean out the folder /home/hduser/hadoop-tmp/hdfs/datanode. this folder MUST be empty.
 
 -----
