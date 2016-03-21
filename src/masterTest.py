@@ -1,10 +1,70 @@
-import paramiko # for doing ssh stuff
 import simpleCloudStackRest # super simple class for doing cloudstack api calls
 import secretSause  # file that includes secret stuff!
 import pprint   # pretty printing
 import sys  # argument passing from commandline
-import time # so we can sleep during vm creation to give create time to assign ip
-import os   # to get environmental variables
+import os   # to get environmental variables and to see if file exists
+import re
+import SSHWrapper
+
+# function that creates/sets the global counter
+def getNextSlaveName(filename=None):
+    DEFAULT_GLOBAL_FILENAME = '/home/cloud/cmpt733_global_counter.txt'
+    BASE_SLAVE_NAME = 'dlw-Slave'
+    SLAVE_NAMING_REGEX = BASE_SLAVE_NAME+'(\d+)'
+
+    # make filename correct
+    if filename is None:
+        filename = DEFAULT_GLOBAL_FILENAME
+
+    # now check if file exists
+    next_name = ''
+    if os.path.isfile(filename):
+        # get value of file
+        with open(filename, 'r+') as fh: 
+            max_slave = int(fh.read()) + 1 
+            next_name = BASE_SLAVE_NAME + str(max_slave)
+
+        # update value of file
+        with open(filename, 'w') as fh: 
+            fh.write(str(max_slave))
+    else:
+        # ok, file does NOT exist, now we need to create that global counter file!
+
+        # first get all machines
+        api, pp = _setup()
+        result = api.listVirtualMachines({'listall': 'true', 'details':'all'})
+
+        # now check if it worked
+        if 'errortext' in result:
+            # oh man... failed!
+            pp.pprint(result)
+            return next_name
+
+        vms = result.get('virtualmachine')
+
+        # now we start to look for conventional dlw-Slave# names
+        vmlist = dict() # dict of slavenames:ip
+        max_numbers = list() # so we can get max number used in naming slaves 
+        checker = re.compile(SLAVE_NAMING_REGEX)
+        for vm in vms:
+            test_name = vm.get('displayname')
+            matchobj = checker.match(test_name)
+            if matchobj:
+                ip = vm.get('nic')[0].get('ipaddress')
+                vmlist[matchobj.group()] = ip
+                max_numbers.append(int(matchobj.group(1)))
+            else:
+                print 'failed to match name: ' + test_name
+
+        # now get max number of slave and set the global counter
+        max_numbers.sort(reverse=True)
+        max_slave = int(max_numbers[0]) + 1
+        with open(filename, 'w') as fh:
+            fh.write(str(max_slave))
+        next_name = BASE_SLAVE_NAME + str(max_slave)
+
+    # return new name!
+    return next_name
 
 def main(argv):
     # some constants..... We could be smarter, but let's just get going first. Walk before Running
@@ -15,32 +75,67 @@ def main(argv):
     # basic setting up of api and stuff
     api, pp = _setup()
 
-    # now we need to use the api to create a new VM
-    result = api.deployVirtualMachine({'serviceofferingid': serviceofferingid, 'zoneid':zoneid, 'templateid':templateid})
-    time.sleep(10)   # sleep for 5 seconds to let vm get assigned ip
+    # now we need to get the next slave name 
+    next_name = getNextSlaveName()
+    if not next_name:
+        pp.pprint('getting the next name failed.')
+        return -1
 
-    # now get ip of new machine 
+    # try to deploy with new slave with correct name
+    result = api.deployVirtualMachine({ 'serviceofferingid': serviceofferingid,
+                                        'zoneid': zoneid,
+                                        'templateid': templateid,
+                                        'displayname': next_name,
+                                        'name': next_name })
+
+    # now we wait for the async deployVirtualMachine() to finsih
+    while True:
+        deploy_status = api.queryAsyncJobResult({'jobId': result.get('jobid')})
+        job_status = int( deploy_status.get('jobstatus') )
+
+        if job_status == 1:
+            break;
+        elif job_status == 2:
+            print next_name + ": " + str(deploy_status.get('jobresult'))
+            pp.pprint(deploy_status)
+            return -2
+
+    # now check if deploy worked
+    if 'errortext' in result:
+        # oh man... failed!
+        pp.pprint(result)
+        return
+
+    ''' now get ip of new machine ''' 
+
+    # get info for newly generated machine
     result2 = api.listVirtualMachines({'id': result.get("id") })
-    pp.pprint(result2)
     ip = result2.get('virtualmachine')[0].get('nic')[0].get('ipaddress')
-    pp.pprint(ip)
-    
-    # finally, our simple command!
-    # TODO: create function that looks for global counter file, if not found, then do an api call to
-    # get list and use regex to get count/max number, then create the global counter file.  If
-    # global counter file found, then we just pull from that and update it to the next increment
-    new_hostname = 'testSlave'
-    
-    # now we initialize the ssh connection 
-    user_password = os.environ.get('SSH_USER_PASSWORD') #we need it setup as environmental variable
-    pp.pprint(user_password)
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(ip, username='cloud', password=user_password)
 
-    # now we do simplest touch command for testing
-    stdin, stdout, stderr = ssh.exec_command("touch ~/test_loong.txt")
-    
+    # now we initialize the ssh connection 
+    ssh = SSHWrapper.SSHWrapper(ipAddr=ip)
+    print ssh.command('touch asdfdlw.txt')
+    '''
+    user_password = os.environ.get('SSH_USER_PASSWORD') # we need it setup as environmental variable
+    sleep_time = 1
+    while True:
+        try:
+            timer.sleep(sleep_time)
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(ip, username='cloud', password=user_password)
+
+            # now we do simplest touch command for testing
+            stdin, stdout, stderr = ssh.exec_command("touch ~/test_dlw.txt")
+
+            # now we can get out of this loop!
+            break;
+        except:
+            sleep_time = sleep_time * 2
+            if sleep_time > MAX_SLEEP_TIME:
+                break;
+    '''
+
     #pp.pprint(result2)
 
 def _setup():
