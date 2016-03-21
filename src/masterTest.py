@@ -113,7 +113,7 @@ def main(argv):
     ip = result2.get('virtualmachine')[0].get('nic')[0].get('ipaddress')
 
     # now we initialize the ssh connection 
-    ssh = SSHWrapper(ipAddr=ip)
+    ssh = SSHWrapper.SSHWrapper(ipAddr=ip)
     print ssh.command('touch asdfdlw.txt')
     '''
     user_password = os.environ.get('SSH_USER_PASSWORD') # we need it setup as environmental variable
