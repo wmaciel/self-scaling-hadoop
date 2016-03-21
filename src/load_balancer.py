@@ -31,24 +31,31 @@ def upsize_cluster():
     # TODO:
 
 
-def low_state():
+def low_state(low_threshold):
     patience = 50
-    low_threshold = 0.25 * threshold
+
     while compute_cluster_load() < low_threshold:
         patience -= 1
         time.sleep(10)
+
         if patience < 0:
             downsize_cluster()
             time.sleep(120)
             return
 
 
-def high_state():
+def high_state(threshold, high_threshold):
     patience = 50
-    high_threshold = 0.75 * threshold
-    while compute_cluster_load() > high_threshold:
-        patience -= 1
+    load = compute_cluster_load()
+
+    while load > high_threshold:
+        if load > threshold:
+            patience -= 2
+        else:
+            patience -= 1
+
         time.sleep(10)
+
         if patience < 0:
             upsize_cluster()
             time.sleep(120)
@@ -62,9 +69,9 @@ def main(threshold, w_queue, w_memory, w_cpu):
     while True:
         load = compute_cluster_load()
         if load < low_threshold:
-            low_state()
+            low_state(low_threshold)
         elif load > high_threshold:
-            high_state()
+            high_state(threshold, high_threshold)
 
 
 
