@@ -68,8 +68,8 @@ def getNextSlaveName(filename=None):
 
 
 # function that creates/sets the global counter
-def updateHostFile(newSlaveName, newSlaveIp, filename=None):
-    new_hosts_line = str(newSlaveName) + '\t' + str(newSlaveIp)
+def updateHostsAndSlavesFile(newSlaveName, newSlaveIp, filename=None):
+    new_hosts_line = str(newSlaveName) + '\t' + str(newSlaveIp) + '\n'
     
     # make filename correct
     if filename is None:
@@ -91,24 +91,49 @@ def updateHostFile(newSlaveName, newSlaveIp, filename=None):
         with open(filename, 'w') as fh: 
             for line in list_of_current_slaves:
                 fh.write("%s\n", line)
+                
+        # send hosts and slaves to all machines... see the else case
+        
     else:   #uhg. now for case where we have no local hosts file... we pull from master
 
         # get hosts file from master...
         ssh = SSHWrapper.SSHWrapper(config.MASTER_IP)
-        hosts_file, = ssh.sudo_command('cat /etc/hosts')
-        print hosts_file
+        hosts_file, = ssh.command('cat /etc/hosts')
         
-        # now get max number of slave and set the global counter
-#         max_numbers.sort(reverse=True)
-#         max_slave = int(max_numbers[0]) + 1
-#         with open(filename, 'w') as fh:
-#             fh.write(str(max_slave))
-#         next_name = config.BASE_SLAVE_NAME + str(max_slave)
-
+        # append new line for new worker
+        hosts_file.append(new_hosts_line)
+        
+        # save file locally
+        with open(filename, 'w') as fh:
+            for line in hosts_file:
+                fh.write('%s', line)
+        
+        # now send updates to all 
+        '''
+        NOTES:
+        - foreach machine ( maybe need an api call???? + logic????)
+            - need to send to cloud's home directory vi sftp
+                - sftp = ssh.open_sftp()
+                - sftp.put(<path to local file>, <path to remote file>)
+                - sftp.close()
+            - need to then overwrite hosts file
+                - need to do sudo -S <command> instead, so we can send password via stdin
+                - stdin, stdout, stderr = ssh.command('sudo -S cp /home/cloud/hosts /etc/hosts')
+                - stdin.write(<password>)
+                - stdin.flush()
+        '''
+                
+        # now update slaves file for all?
+        '''
+        - please see above, should be similar in logic.  
+        '''
+        
+        # clean out directory of which one?? all or just new node?
+        
     # return new name!
 
 
-def upsize(argv):
+def upsize():
 
     # now we need to get the next slave name 
     next_name = getNextSlaveName()
@@ -140,15 +165,8 @@ def upsize(argv):
     result2 = api.listVirtualMachines({'id': result.get("id") })
     ip = result2.get('virtualmachine')[0].get('nic')[0].get('ipaddress')
 
-    # now we initialize the ssh connection 
-    ssh = SSHWrapper.SSHWrapper(ipAddr=ip)
-    
-    #
-    
-    #
-    
-    ssh.close()
-    
+    updateHostsAndSlavesFile(next_name, ip)
+        
 
 # basic global stuff
 api, pp = util.setup()

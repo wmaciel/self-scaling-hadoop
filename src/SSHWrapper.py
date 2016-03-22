@@ -37,20 +37,19 @@ class SSHWrapper():
     
 
     def command(self, command_string):
-        # run sudo command
+        # run command
         stdin, stdout, stderr = self.ssh.exec_command(command_string)
         
         # get and return output
         stdout_data = stdout.readlines()
-        stdin_data = stdin.readlines()
         stderr_data = stderr.readlines()
         
-        return stdout_data, stdin_data, stderr_data
+        return stdout_data, stderr_data
     
     def sudo_command(self, sudo_command_string, password = None):
         # add sudo to the command string
         if not sudo_command_string.trim().startswith('sudo'):
-            sudo_command_string = 'sudo' + sudo_command_string
+            sudo_command_string = 'sudo ' + sudo_command_string
         
         # run sudo command
         stdin, stdout, stderr = self.ssh.exec_command(sudo_command_string)
@@ -65,10 +64,9 @@ class SSHWrapper():
         
         # get and return output
         stdout_data = stdout.readlines()
-        stdin_data = stdin.readlines()
         stderr_data = stderr.readlines()
         
-        return stdout_data, stdin_data, stderr_data
+        return stdout_data, stderr_data
         
     def __del__(self):
         self.ssh.close()
