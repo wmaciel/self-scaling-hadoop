@@ -132,7 +132,7 @@ def upsize():
     util.debug_print(outmsg)
     util.debug_print(errmsg)
     
-    util.debug_print('tryingn to run start-yarn.sh')
+    util.debug_print('trying to run start-yarn.sh')
     outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "bash /home/hduser/hadoop-2.7.0/sbin/start-yarn.sh"')
     util.debug_print(outmsg)
     util.debug_print(errmsg)

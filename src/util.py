@@ -33,17 +33,23 @@ def waitForAsync(jobid):
     return True
 
 def updateFile(fileType='hosts', newLine = '', filename=None):
-
+    debug_print('calling util.updateFile() with newLine: ' + newLine)
     get_file_command = ''
     dest_filename = ''
+    user_name = 'hduser'
     if fileType == 'hosts':
         if filename is None:
             filename = config.DEFAULT_LOCAL_HOSTS_FILENAME
         dest_filename = config.DEFAULT_DESTINATION_HOSTS_FILENAME
+        user_name = 'root'
     elif fileType == 'slaves':
         if filename is None:
             filename = config.DEFAULT_LOCAL_SLAVES_FILENAME
         dest_filename = config.DEFAULT_DESTINATION_SLAVES_FILENAME
+    elif fileType == 'excludes':
+        if filename is None:
+            filename = config.DEFAULT_LOCAL_EXCLUDES_FILENAME
+        dest_filename = config.DEFAULT_DESTINATION_EXCLUDES_FILENAME
     else:
         return -4 # random.... sorry.
     
@@ -60,6 +66,8 @@ def updateFile(fileType='hosts', newLine = '', filename=None):
     # append new line for new worker
     if newLine not in some_file_list: 
         some_file_list.append(newLine)
+    debug_print('updated file:')
+    debug_print(some_file_list)
     
     # save file locally
     with open(filename, 'w') as fh:
@@ -67,14 +75,27 @@ def updateFile(fileType='hosts', newLine = '', filename=None):
             fh.write('%s' % line)
     
     # now send updated hosts file back to master at cloud's directory
+    debug_print('moving file from manager to master')
     ssh.put_sftp(filename, filename)
        
     # now copy hosts from destination to correct location on remote
+    debug_print('trying to move from cloud directory: ' + filename + ' to final directory: ' + dest_filename )
     some_file_list, some_error =ssh.sudo_command('mv ' + filename + ' ' + dest_filename)
     debug_print(some_file_list)
     debug_print(some_error)
     
-    # give correct ownership
+    debug_print('trying to change to correct file owner')
+    if fileType == 'hosts':
+        some_file_list, some_error =ssh.sudo_command('chown root:root ' + dest_filename)
+        debug_print(some_file_list)
+        debug_print(some_error)
+    elif fileType == 'slaves' or fileType == 'excludes':
+        some_file_list, some_error =ssh.sudo_command('chown hduser:hadoop ' + dest_filename)
+        debug_print(some_file_list)
+        debug_print(some_error)
+    else:
+        return -4 # random.... sorry.
+    
     return True    
 
 def update_hostname(ip, newName, vmID):
@@ -92,7 +113,8 @@ def update_hostname(ip, newName, vmID):
     ssh.put_sftp(filename, filename)
     
     # copy from /home/cloud to /etc/hostname in slave
-    ssh.sudo_command('sudo -S mv -f '+filename+' '+dest_filename)
+    debug_print('trying to mv from ' + filename + ' to ' + dest_filename)
+    ssh.sudo_command('mv -f '+filename+' '+dest_filename)
     
     # restart machine
     restart_machine(vmID)

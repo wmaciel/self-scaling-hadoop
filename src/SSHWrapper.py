@@ -59,6 +59,9 @@ class SSHWrapper():
         if password is None:
             password = os.environ.get('SSH_USER_PASSWORD') # we need it setup as environmental variable
             
+        # sleep just to make sure it's good
+        time.sleep(1)
+        
         # give password
         stdin.write(password+'\n')
         stdin.flush()
@@ -73,7 +76,6 @@ class SSHWrapper():
         util.debug_print('localfile: '+localfile)
         util.debug_print('remotefile: '+remotefile)
         ftp = self.ssh.open_sftp()
-        util.debug_print(ftp)
         ftp.put(localfile, remotefile)
         return True
         
