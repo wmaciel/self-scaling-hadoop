@@ -66,24 +66,6 @@ def getNextSlaveName(filename=None):
     # return new name!
     return next_name
 
-def updateHostsAndSlavesFile(newSlaveName, newSlaveIp, filename=None):
-    #def updateFile(fileType='hosts', newLine = '', filename=None):
-    new_hosts_line = str(newSlaveName) + '\t' + str(newSlaveIp) + '\n'
-
-    # update hosts file on master
-    util.updateFile('hosts', new_hosts_line)
-    
-    # update slaves file on master
-    util.updateFile('slaves', newSlaveName)
-    
-    # now to start the start-dfs.sh and start-yarn.sh
-    ssh = SSHWrapper.SSHWrapper(config.MASTER_IP)
-    ssh.sudo_command('su hduser')
-    ssh.command('./home/hduser/hadoop-2.7.0/etc/hadoop/start-dfs.sh')
-    ssh.command('./home/hduser/hadoop-2.7.0/etc/hadoop/start-yarn.sh')
-    
-    return None
-
 def upsize():
 
     # now we need to get the next slave name
@@ -123,8 +105,11 @@ def upsize():
     util.debug_print('IP of new machine is: '+str(ip))
     
     # clear out datanode
-    delssh = SSHWrapper.SSHWrapper(ip)
-    delssh.sudo_command('sudo -S rm -rf /home/hduser/hadoop-tmp/hdfs/datanode/*')
+    dataNodessh = SSHWrapper.SSHWrapper(ip)
+    dataNodessh.sudo_command('sudo -S su hduser -c "rm -rf /home/hduser/hadoop-tmp/hdfs/datanode/*"')
+    
+    # change the hostname
+    util.update_hostname(ip, next_name, result.get("id"))
     
     # new line for /etc/hosts file
     new_hosts_line =  str(ip) + '\t' + str(next_name) + '\n'

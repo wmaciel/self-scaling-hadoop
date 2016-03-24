@@ -40,24 +40,22 @@ def updateFile(fileType='hosts', newLine = '', filename=None):
         if filename is None:
             filename = config.DEFAULT_LOCAL_HOSTS_FILENAME
         dest_filename = config.DEFAULT_DESTINATION_HOSTS_FILENAME
-        file_owner = config.HOSTS_FILE_USER
     elif fileType == 'slaves':
         if filename is None:
             filename = config.DEFAULT_LOCAL_SLAVES_FILENAME
         dest_filename = config.DEFAULT_DESTINATION_SLAVES_FILENAME
-        file_owner = config.SLAVES_FILE_USER
     else:
-        return -4
+        return -4 # random.... sorry.
     
     get_file_command = 'cat ' + dest_filename
     
     # init stuff for ssh
     ssh = SSHWrapper.SSHWrapper(config.MASTER_IP)
     
-    # get hosts file from master...
+    # get file from master...
     some_file_list, some_error = ssh.command(get_file_command)
-    print some_file_list
-    print some_error
+    debug_print(some_file_list)
+    debug_print(some_error)
     
     # append new line for new worker
     if newLine not in some_file_list: 
@@ -72,20 +70,43 @@ def updateFile(fileType='hosts', newLine = '', filename=None):
     ssh.put_sftp(filename, filename)
        
     # now copy hosts from destination to correct location on remote
-    some_file_list, some_error =ssh.sudo_command('cp ' + filename + ' ' + dest_filename)
-    print some_file_list
-    print some_error
+    some_file_list, some_error =ssh.sudo_command('mv ' + filename + ' ' + dest_filename)
+    debug_print(some_file_list)
+    debug_print(some_error)
     
     # give correct ownership
-    '''
-    if fileType == 'hosts':
-        some_file_list, some_error = ssh.sudo_command('chown root:root ' + dest_filename)
-    elif fileType == 'slaves':
-        some_file_list, some_error = ssh.sudo_command('chown  hduser:hadoop' + dest_filename)
-    print some_file_list
-    print some_error
-    '''
     return True    
+
+def update_hostname(ip, newName, vmID):
+        # init stuff for ssh
+    ssh = SSHWrapper.SSHWrapper(ip)
+    
+    filename = config.DEFAULT_LOCAL_HOSTNAME_FILENAME
+    dest_filename = config.DEFAULT_DESTINATION_HOSTNAME_FILENAME
+    
+    # save file locally on manager
+    with  open(filename, 'w') as fh:
+        fh.write('%s\n' % newName)
+        
+    # move hostname file to slave 
+    ssh.put_sftp(filename, filename)
+    
+    # copy from /home/cloud to /etc/hostname in slave
+    ssh.sudo_command('sudo -S mv -f '+filename+' '+dest_filename)
+    
+    # restart machine
+    restart_machine(vmID)
+    
+    
+def restart_machine(vmID):
+    result = api.rebootVirtualMachine({'id':vmID})
+    
+    waiting = waitForAsync(result.get('jobid'))
+    
+    if waiting != True: # whoops something went wrong!
+        return waiting
+    
+    return True
     
 def debug_print(str):
     if config.DEBUG:
