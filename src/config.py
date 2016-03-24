@@ -3,13 +3,21 @@ Created on Mar 21, 2016
 
 @author: loongchan
 '''
+###### GENERAL STUFF ######
+DEBUG = True
+
 ###### USED FOR SLAVE NAME STUFF ######
 DEFAULT_GLOBAL_COUNTER_FILENAME = '/home/cloud/cmpt733_global_counter.txt'
 BASE_SLAVE_NAME = 'dlw-Slave'
 SLAVE_NAMING_REGEX = BASE_SLAVE_NAME+'(\d+)'
 
 ###### USED FOR HOSTS FILE STUFF ######
-DEFAULT_GLOBAL_HOSTS_FILENAME = '/home/cloud/hosts'
+DEFAULT_LOCAL_HOSTS_FILENAME = '/home/cloud/hosts'
+DEFAULT_DESTINATION_HOSTS_FILENAME = '/etc/hosts'
+DEFAULT_LOCAL_SLAVES_FILENAME = '/home/cloud/slaves'
+DEFAULT_DESTINATION_SLAVES_FILENAME = '/home/hduser/hadoop-2.7.0/etc/hadoop/slaves'
+SLAVES_FILE_USER = 'hduser'
+HOSTS_FILE_USER = 'root'
 MASTER_IP = '199.60.17.143'
 
 

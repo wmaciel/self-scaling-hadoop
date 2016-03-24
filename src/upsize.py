@@ -66,82 +66,37 @@ def getNextSlaveName(filename=None):
     # return new name!
     return next_name
 
-
-# function that creates/sets the global counter
 def updateHostsAndSlavesFile(newSlaveName, newSlaveIp, filename=None):
+    #def updateFile(fileType='hosts', newLine = '', filename=None):
     new_hosts_line = str(newSlaveName) + '\t' + str(newSlaveIp) + '\n'
+
+    # update hosts file on master
+    util.updateFile('hosts', new_hosts_line)
     
-    # make filename correct
-    if filename is None:
-        filename = config.DEFAULT_GLOBAL_HOSTS_FILENAME
-
-    # now check if file exists
-    next_name = ''
-    if os.path.isfile(filename):
-        # get value of file
-        list_of_current_slaves = list()
-        with open(filename, 'r+') as fh: 
-            list_of_current_slaves = [line for line in fh.readlines() if line.strip()]
-            
-        # now we make sure it's not already in there
-        if new_hosts_line not in list_of_current_slaves:
-            list_of_current_slaves.append(new_hosts_line)
-            
-        # update file
-        with open(filename, 'w') as fh: 
-            for line in list_of_current_slaves:
-                fh.write("%s\n", line)
-                
-        # send hosts and slaves to all machines... see the else case
-        
-    else:   #uhg. now for case where we have no local hosts file... we pull from master
-
-        # get hosts file from master...
-        ssh = SSHWrapper.SSHWrapper(config.MASTER_IP)
-        hosts_file, = ssh.command('cat /etc/hosts')
-        
-        # append new line for new worker
-        hosts_file.append(new_hosts_line)
-        
-        # save file locally
-        with open(filename, 'w') as fh:
-            for line in hosts_file:
-                fh.write('%s', line)
-        
-        # now send updates to all 
-        '''
-        NOTES:
-        - foreach machine ( maybe need an api call???? + logic????)
-            - need to send to cloud's home directory vi sftp
-                - sftp = ssh.open_sftp()
-                - sftp.put(<path to local file>, <path to remote file>)
-                - sftp.close()
-            - need to then overwrite hosts file
-                - need to do sudo -S <command> instead, so we can send password via stdin
-                - stdin, stdout, stderr = ssh.command('sudo -S cp /home/cloud/hosts /etc/hosts')
-                - stdin.write(<password>)
-                - stdin.flush()
-        '''
-                
-        # now update slaves file for all?
-        '''
-        - please see above, should be similar in logic.  
-        '''
-        
-        # clean out directory of which one?? all or just new node?
-        
-    # return new name!
-
+    # update slaves file on master
+    util.updateFile('slaves', newSlaveName)
+    
+    # now to start the start-dfs.sh and start-yarn.sh
+    ssh = SSHWrapper.SSHWrapper(config.MASTER_IP)
+    ssh.sudo_command('su hduser')
+    ssh.command('./home/hduser/hadoop-2.7.0/etc/hadoop/start-dfs.sh')
+    ssh.command('./home/hduser/hadoop-2.7.0/etc/hadoop/start-yarn.sh')
+    
+    return None
 
 def upsize():
 
-    # now we need to get the next slave name 
+    # now we need to get the next slave name
+    util.debug_print('Trying to get slave name....') 
     next_name = getNextSlaveName()
     if not next_name:
-        pp.pprint('getting the next name failed.')
+        pp.pprint('Getting the next name failed.')
         return -1
 
+    util.debug_print('slavename is: '+str(next_name))
+
     # try to deploy with new slave with correct name
+    util.debug_print('Trying to deploy VM')
     result = api.deployVirtualMachine({ 'serviceofferingid': config.SERVICEOFFERINGID,
                                         'zoneid': config.ZONEID,
                                         'templateid': config.TEMPLATEID,
@@ -159,14 +114,45 @@ def upsize():
         # oh man... failed!
         pp.pprint(result)
         return
+    util.debug_print('OK, just created the VM')
 
     ''' now get ip of new machine ''' 
     # get info for newly generated machine
     result2 = api.listVirtualMachines({'id': result.get("id") })
     ip = result2.get('virtualmachine')[0].get('nic')[0].get('ipaddress')
+    util.debug_print('IP of new machine is: '+str(ip))
+    
+    # clear out datanode
+    delssh = SSHWrapper.SSHWrapper(ip)
+    delssh.sudo_command('sudo -S rm -rf /home/hduser/hadoop-tmp/hdfs/datanode/*')
+    
+    # new line for /etc/hosts file
+    new_hosts_line =  str(ip) + '\t' + str(next_name) + '\n'
 
-    updateHostsAndSlavesFile(next_name, ip)
-        
+    # update hosts file on master
+    util.debug_print('Trying update Hosts file with line: '+new_hosts_line)
+    util.updateFile('hosts', new_hosts_line)
+    util.debug_print('Updated hosts file')
+    
+    # update slaves file on master
+    util.debug_print('Trying to update slaves file with name:' + next_name)
+    util.updateFile('slaves', next_name + "\n")
+    util.debug_print('Done updating slaves file')
+    
+    # now to start the start-dfs.sh and start-yarn.sh
+    ssh = SSHWrapper.SSHWrapper(config.MASTER_IP)
+
+    util.debug_print('trying to start-dfs.sh')
+    outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "bash /home/hduser/hadoop-2.7.0/sbin/start-dfs.sh"')
+    util.debug_print(outmsg)
+    util.debug_print(errmsg)
+    
+    util.debug_print('tryingn to run start-yarn.sh')
+    outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "bash /home/hduser/hadoop-2.7.0/sbin/start-yarn.sh"')
+    util.debug_print(outmsg)
+    util.debug_print(errmsg)
+    
+    util.debug_print('DONE!')
 
 # basic global stuff
 api, pp = util.setup()

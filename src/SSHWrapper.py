@@ -8,6 +8,7 @@ import os # so we can get to environmental variables
 import time # so we can do sleep!
 import socket
 import config
+import util
 
 class SSHWrapper():
     
@@ -48,8 +49,8 @@ class SSHWrapper():
     
     def sudo_command(self, sudo_command_string, password = None):
         # add sudo to the command string
-        if not sudo_command_string.trim().startswith('sudo'):
-            sudo_command_string = 'sudo ' + sudo_command_string
+        if not sudo_command_string.strip().startswith('sudo'):
+            sudo_command_string = 'sudo -S ' + sudo_command_string
         
         # run sudo command
         stdin, stdout, stderr = self.ssh.exec_command(sudo_command_string)
@@ -68,5 +69,16 @@ class SSHWrapper():
         
         return stdout_data, stderr_data
         
+    def put_sftp(self, localfile, remotefile):
+        util.debug_print('localfile: '+localfile)
+        util.debug_print('remotefile: '+remotefile)
+        ftp = self.ssh.open_sftp()
+        util.debug_print(ftp)
+        ftp.put(localfile, remotefile)
+        return True
+        
     def __del__(self):
         self.ssh.close()
+        
+        
+        
