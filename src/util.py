@@ -9,6 +9,7 @@ import pprint   # pretty printing
 import time
 import SSHWrapper
 import config
+import re
 
 def setup():
     # setup basic api stuff
@@ -36,12 +37,10 @@ def updateFile(fileType='hosts', newLine = '', filename=None):
     debug_print('calling util.updateFile() with newLine: ' + newLine)
     get_file_command = ''
     dest_filename = ''
-    user_name = 'hduser'
     if fileType == 'hosts':
         if filename is None:
             filename = config.DEFAULT_LOCAL_HOSTS_FILENAME
         dest_filename = config.DEFAULT_DESTINATION_HOSTS_FILENAME
-        user_name = 'root'
     elif fileType == 'slaves':
         if filename is None:
             filename = config.DEFAULT_LOCAL_SLAVES_FILENAME
@@ -84,7 +83,7 @@ def updateFile(fileType='hosts', newLine = '', filename=None):
     debug_print(some_file_list)
     debug_print(some_error)
     
-    debug_print('trying to change to correct file owner')
+    debug_print('trying to change to correct file owner for ' + fileType)
     if fileType == 'hosts':
         some_file_list, some_error =ssh.sudo_command('chown root:root ' + dest_filename)
         debug_print(some_file_list)
@@ -97,6 +96,28 @@ def updateFile(fileType='hosts', newLine = '', filename=None):
         return -4 # random.... sorry.
     
     return True    
+
+def get_file_content(dest_filename, ip = None):
+    '''
+    Returns the content of the dest_filename
+    Input: filename, ip
+    Output: list of line of file
+    '''
+    debug_print('calling util.get_file_content()')
+    get_file_command = 'cat ' + dest_filename
+    
+    if ip is None:
+        ip = config.MASTER_IP
+    
+    # init stuff for ssh
+    ssh = SSHWrapper.SSHWrapper(ip)
+    
+    # get file from master...
+    some_file_list, some_error = ssh.sudo_command(get_file_command)
+    debug_print(some_file_list)
+    debug_print(some_error)
+    
+    return some_file_list
 
 def update_hostname(ip, newName, vmID):
         # init stuff for ssh
@@ -129,6 +150,40 @@ def restart_machine(vmID):
         return waiting
     
     return True
+
+def get_max_slavename(some_file_list, return_all = False):
+    '''
+    This function gets a list of slave names, one per line and either returns the "max" slave name
+    Input: ['dlw-Slave2\n', 'dlw-Slave3\n']
+    Output 'dlw-Slave3'
+    '''
+    debug_print('calling on util.get_max_slavename')
+    
+    # get max slave node name
+    max_slave_name = ''
+    max_slave_number = 0
+    all_slaves_list = list()
+    checker = re.compile(config.SLAVE_NAMING_REGEX)
+    for line in some_file_list:
+        matchobj = checker.match(line)
+        if matchobj:
+            
+            # add to all slave list
+            all_slaves_list.append(matchobj.group())
+            
+            # figure out max slavename
+            line_slave_number = int(matchobj.group(1))
+            if max_slave_number < line_slave_number:
+                max_slave_number = line_slave_number
+                max_slave_name = matchobj.group()
+    
+    if return_all:
+        debug_print('util.get_max_slave is returning list of slaves:')
+        debug_print(all_slaves_list)
+        return all_slaves_list
+    else:
+        debug_print('util.get_max_slave is returning: ' + max_slave_name)
+        return max_slave_name
     
 def debug_print(str):
     if config.DEBUG:
