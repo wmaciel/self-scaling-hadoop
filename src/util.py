@@ -33,7 +33,7 @@ def waitForAsync(jobid):
     
     return True
 
-def updateFile(fileType='hosts', newLine = '', filename=None):
+def updateFile(fileType='hosts', newLine = '', filename=None, addLine=True):
     debug_print('calling util.updateFile() with newLine: ' + newLine)
     get_file_command = ''
     dest_filename = ''
@@ -62,9 +62,18 @@ def updateFile(fileType='hosts', newLine = '', filename=None):
     debug_print(some_file_list)
     debug_print(some_error)
     
-    # append new line for new worker
-    if newLine not in some_file_list: 
-        some_file_list.append(newLine)
+    # append or remove newLine from file
+    if addLine:
+        if newLine not in some_file_list: 
+            some_file_list.append(newLine)
+    else:
+        try:
+            ind = some_file_list.index(newLine)
+            del some_file_list[ind]
+        except:
+            debug_print('can not find line "' + newLine + '" in file: ' + dest_filename)
+            return -5
+        
     debug_print('updated file:')
     debug_print(some_file_list)
     
@@ -78,7 +87,7 @@ def updateFile(fileType='hosts', newLine = '', filename=None):
     ssh.put_sftp(filename, filename)
        
     # now copy hosts from destination to correct location on remote
-    debug_print('trying to move from cloud directory: ' + filename + ' to final directory: ' + dest_filename )
+    debug_print('trying to move from cloud directory: ' + filename + ' to final directory: ' + dest_filename + ' at master')
     some_file_list, some_error =ssh.sudo_command('mv ' + filename + ' ' + dest_filename)
     debug_print(some_file_list)
     debug_print(some_error)
@@ -93,7 +102,7 @@ def updateFile(fileType='hosts', newLine = '', filename=None):
         debug_print(some_file_list)
         debug_print(some_error)
     else:
-        return -4 # random.... sorry.
+        return -6
     
     return True    
 
@@ -148,8 +157,38 @@ def restart_machine(vmID):
     
     if waiting != True: # whoops something went wrong!
         return waiting
-    
+        
     return True
+
+def get_vm_id_by_name(slaveName):
+    '''
+    convert slavename to vmid
+    Input String slavename
+    Output String vmid, or False if it can't find anything
+    '''
+    debug_print('calling util.get_vm_by_name')
+    
+    # first get all machines
+    result = api.listVirtualMachines({'listall': 'true', 'details':'all'})
+
+    # now check if it worked
+    if 'errortext' in result:
+        # oh man... failed!
+        pp.pprint(result)
+        return -7
+
+    vms = result.get('virtualmachine')
+    
+    # now run though the list till we get the correct one.
+    for vm in vms:
+        test_name = vm.get('name')
+        if test_name == slaveName:
+            debug_print('For slave: ' + str(slaveName) + ' vmID is: ' + vm.get('id'))
+            return vm.get('id')
+    
+    debug_print('Something is fishy as cannot find vmid for: ' + str(slaveName))
+    return False
+    
 
 def get_max_slavename(some_file_list, return_all = False):
     '''

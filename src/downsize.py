@@ -4,28 +4,74 @@ Created on Mar 21, 2016
 @author: loongchan
 '''
 import sys  
-import os
-import re
 import simpleCloudStackRest
 import SSHWrapper
 import util
 import config
-import time
-
-def getAllSlaveNames():
-    util.debug_print('called getLastSlaveName()')
-    get_file_command = 'cat ' + config.DEFAULT_DESTINATION_SLAVES_FILENAME
+import re
+from posix import remove
     
-    # connect to master node
+def stopDecommissionedMachine(slaveName):
+    '''
+    Checks whether decommissioning completed, then stops the vm
+    Input String slavename
+    Output: None
+    '''
+    util.debug_print('calling downsize stopDecommissionedMachine()')
+    vmid = util.get_vm_id_by_name(slaveName)
+    
+    # connect to master 
     ssh = SSHWrapper.SSHWrapper(config.MASTER_IP)
     
-    # get slaves file info from master...
-    some_file_list, some_error = ssh.command(get_file_command)
+    # get status
+    util.debug_print('Trying to get report on status of machines... ')
+    outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "/home/hduser/hadoop-2.7.0/bin/hdfs dfsadmin -report"')
+    util.debug_print(outmsg)
+    util.debug_print(errmsg)
 
-    # get max slave node name
-    return util.get_max_slavename(some_file_list, return_all=True)
+    # find the section for the slave we are interested in
+    # eg line is "Name: 199.60.17.186:50010 (dlw-Slave71)"
+    util.debug_print('trying to find index of where to check status')
+    index_for_report_on_slave = -1
+    checker = re.compile(config.REPORT_DATANODE_STATUS_STARTING_REGEX + str(slaveName) + '\)')
+    for line in outmsg:
+        matchobj = checker.match(line)
+        if matchobj:
+            util.debug_print('found the line! it is: ' + str(line))
+            index_for_report_on_slave = outmsg.index(line)
+            break
+        
+    # now check status of slavenode
+    commission_line = index_for_report_on_slave + 2
+    util.debug_print('commission line is: ' + str(commission_line))
+    while True:
+        line = outmsg[commission_line]
+        util.debug_print('status of decommissioning machine is: ' + str(line))
+        if line.find('Decommissioned'):
+            result = api.stopVirtualMachine({'id': vmid})
+            util.debug_print('result from calling stopvm')
+            util.debug_print(result)
+            
+            waitResult = util.waitForAsync(result.get('jobid'))
+            util.debug_print('result of async wait is.....')
+            util.debug_print(waitResult)
+            
+            if waitResult != True: # whoops something went wrong!
+                return waitResult
+            
+            # let's get out of here!
+            util.debug_print('DONE, we waited for it to finish decomissioning, then we stopped the VM! ')
+            break;
+
+        # ok, not decommissioned yet, so callthe ssh command again!
+        util.debug_print('checking again inside forever WHileTrue loop, as it is not in decomissioned state.')
+        outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "/home/hduser/hadoop-2.7.0/bin/hdfs dfsadmin -report"')
+        util.debug_print(outmsg)
+        util.debug_print(errmsg)
+        
+    return True
     
-def decommission():
+def decommission(also_stop_vm = True):
     '''
     This function basically copies slave names from slaves list to excludes list and run refresh scripts
     Input: None
@@ -34,7 +80,7 @@ def decommission():
     util.debug_print('Trying to decommision')
     
     # get all slave names in slaves file
-    all_slave_names = map(str.strip, getAllSlaveNames())
+    all_slave_names = map(str.strip, util.get_file_content(config.DEFAULT_DESTINATION_SLAVES_FILENAME))
     util.debug_print('all_slave_names:')
     util.debug_print(all_slave_names)
     
@@ -70,6 +116,42 @@ def decommission():
     outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "/home/hduser/hadoop-2.7.0/bin/yarn rmadmin -refreshNodes"')
     util.debug_print(outmsg)
     util.debug_print(errmsg)
+    
+    if also_stop_vm:
+        stopDecommissionedMachine(max_name)
+    
+def removeDecommissionedMachine(slaveName = None):
+    '''
+    WIP!  WORK IN PROGRESS!!!
+    # if NOT passed name, get it from excludes. if excludes is empty return nothing
+    # if passed in we can assume correct stuff
+    # remove from slaves and excludes
+    # do we need to run -refreshNodes scripts?
+    '''
+    util.debug_print('calling downsize removeDecommissionedMachine()')
+    
+    # if not set, then get from excludes list
+    if slaveName is None:
+        util.debug_print('not slaveName passed as parameter')
+        # get the excludes file from master
+        excludes_file_content = util.get_file_content(config.DEFAULT_DESTINATION_EXCLUDES_FILENAME)
+        
+        # no magic, just get last one
+        if len(excludes_file_content) > 0:
+            slaveName = excludes_file_content[-1].strip()
+        else:
+            util.debug_print('no slavename passed in as arument AND we got empty slaves file!')
+            return False
+        
+    # remove that slavename from excludes
+    remove_line = slaveName + "\n"
+    util.debug_print('line to be removed is: ' + remove_line)
+    update_excludes = util.updateFile('excludes', remove_line, addLine = False)
+        
+    # remove that name from slaves file
+    update_slaves = util.updateFile('slaves', remove_line, addLine = False)
+    
+    return None
     
 # basic global stuff
 api, pp = util.setup()

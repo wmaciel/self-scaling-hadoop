@@ -16,8 +16,6 @@ DEFAULT_LOCAL_HOSTS_FILENAME = '/home/cloud/hosts'
 DEFAULT_DESTINATION_HOSTS_FILENAME = '/etc/hosts'
 DEFAULT_LOCAL_SLAVES_FILENAME = '/home/cloud/slaves'
 DEFAULT_DESTINATION_SLAVES_FILENAME = '/home/hduser/hadoop-2.7.0/etc/hadoop/slaves'
-DEFAULT_LOCAL_EXCLUDES_FILENAME = '/home/cloud/excludes'
-DEFAULT_DESTINATION_EXCLUDES_FILENAME = '/home/hduser/hadoop-2.7.0/etc/hadoop/excludes'
 DEFAULT_LOCAL_HOSTNAME_FILENAME = '/home/cloud/hostname'
 DEFAULT_DESTINATION_HOSTNAME_FILENAME = '/etc/hostname'
 SLAVES_FILE_USER = 'hduser'
@@ -26,6 +24,9 @@ MASTER_IP = '199.60.17.143'
 
 ###### DOWNSIZING STUFF ######
 MINIMUM_DATANODE_SIZE = 2 
+REPORT_DATANODE_STATUS_STARTING_REGEX = 'Name:\s\d+\.\d+\.\d+\.\d+.*\('
+DEFAULT_LOCAL_EXCLUDES_FILENAME = '/home/cloud/excludes'
+DEFAULT_DESTINATION_EXCLUDES_FILENAME = '/home/hduser/hadoop-2.7.0/etc/hadoop/excludes'
 
 ###### SSH RETRY MAX TIME #####
 MAX_SLEEP_TIME = 20
