@@ -11,13 +11,27 @@ import config
 import re
 from posix import remove
     
-def stopDecommissionedMachine(slaveName):
+def stopDecommissionedMachine(slaveName = None):
     '''
     Checks whether decommissioning completed, then stops the vm
     Input String slavename
     Output: None
     '''
     util.debug_print('calling downsize stopDecommissionedMachine()')
+    
+    if slaveName is None:
+        util.debug_print('not slaveName passed as parameter')
+        # get the excludes file from master
+        excludes_file_content = util.get_file_content(config.DEFAULT_DESTINATION_EXCLUDES_FILENAME)
+        
+        # no magic, just get last one
+        if len(excludes_file_content) > 0:
+            slaveName = excludes_file_content[-1].strip()
+        else:
+            util.debug_print('no slavename passed in as arument AND we got empty slaves file!')
+            return False
+    
+    
     vmid = util.get_vm_id_by_name(slaveName)
     
     # connect to master 
@@ -122,11 +136,9 @@ def decommission(also_stop_vm = True):
     
 def removeDecommissionedMachine(slaveName = None):
     '''
-    WIP!  WORK IN PROGRESS!!!
-    # if NOT passed name, get it from excludes. if excludes is empty return nothing
-    # if passed in we can assume correct stuff
-    # remove from slaves and excludes
-    # do we need to run -refreshNodes scripts?
+    Destroy decommissioned machines from the cluster and removes traces from excludes and slaves file
+    INPUT: String slaveName (optional)
+    OUTPUT: boolean (True if successful, False otherwise)
     '''
     util.debug_print('calling downsize removeDecommissionedMachine()')
     
@@ -146,12 +158,35 @@ def removeDecommissionedMachine(slaveName = None):
     # remove that slavename from excludes
     remove_line = slaveName + "\n"
     util.debug_print('line to be removed is: ' + remove_line)
+    util.debug_print('removing from excludes file')
     update_excludes = util.updateFile('excludes', remove_line, addLine = False)
+    util.debug_print('update_excludes: ')
+    util.debug_print(update_excludes)
         
     # remove that name from slaves file
+    util.debug_print('removing from slaves file')
     update_slaves = util.updateFile('slaves', remove_line, addLine = False)
+    util.debug_print('update_slaves: ')
+    util.debug_print(update_slaves)
     
-    return None
+    # get vmid from slaveName
+    vmid = util.get_vm_id_by_name(slaveName)
+    
+    util.debug_print('Now we will be trying to destroy the machine with ID: ' + str(vmid))
+    result = api.destroyVirtualMachine({'id': vmid})
+    util.debug_print('result from calling destroy vm')
+    util.debug_print(result)
+    
+    util.debug_print('waiting for the destroyed machine to be finished being destroyed')
+    waitResult = util.waitForAsync(result.get('jobid'))
+    util.debug_print('result of async wait is.....')
+    util.debug_print(waitResult)
+    
+    ''' 
+    DO WE NEED TO DO ANYTHING ELSE????? MAYBE RUN SOME SCRIPTS????
+    '''
+    
+    return True
     
 # basic global stuff
 api, pp = util.setup()
