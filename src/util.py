@@ -188,41 +188,7 @@ def get_vm_id_by_name(slaveName):
     
     debug_print('Something is fishy as cannot find vmid for: ' + str(slaveName))
     return False
-    
 
-def get_max_slavename(some_file_list, return_all = False):
-    '''
-    This function gets a list of slave names, one per line and either returns the "max" slave name
-    Input: ['dlw-Slave2\n', 'dlw-Slave3\n']
-    Output 'dlw-Slave3'
-    '''
-    debug_print('calling on util.get_max_slavename')
-    
-    # get max slave node name
-    max_slave_name = ''
-    max_slave_number = 0
-    all_slaves_list = list()
-    checker = re.compile(config.SLAVE_NAMING_REGEX)
-    for line in some_file_list:
-        matchobj = checker.match(line)
-        if matchobj:
-            
-            # add to all slave list
-            all_slaves_list.append(matchobj.group())
-            
-            # figure out max slavename
-            line_slave_number = int(matchobj.group(1))
-            if max_slave_number < line_slave_number:
-                max_slave_number = line_slave_number
-                max_slave_name = matchobj.group()
-    
-    if return_all:
-        debug_print('util.get_max_slave is returning list of slaves:')
-        debug_print(all_slaves_list)
-        return all_slaves_list
-    else:
-        debug_print('util.get_max_slave is returning: ' + max_slave_name)
-        return max_slave_name
     
 def debug_print(str):
     if config.DEBUG:

@@ -139,6 +139,96 @@ def upsize():
     
     util.debug_print('DONE!')
 
+def recommission(slaveName = None):
+    '''
+    This function recommissions, aka removes from excludes list and runs correct script to add back to node
+    Input: None
+    Outpu: None
+    NOTES: 
+    # we find out if excludes is empty
+    # if empty, return 
+    # if NOT empty, then get last row and remove from exlcudes file
+    # check if machine is on 
+    # if WAS off, then turn on, run start-dfs / start-yarn, run -refreshNodes scripts
+    # if was on, just run -refreshNodes script
+    '''
+    util.debug_print('calling upsize recommission()')
+    
+    # if not set, then get from excludes list
+    if slaveName is None:
+        util.debug_print('not slaveName passed as parameter')
+        # get the excludes file from master
+        excludes_file_content = util.get_file_content(config.DEFAULT_DESTINATION_EXCLUDES_FILENAME)
+        
+        # no magic, just get last one
+        if len(excludes_file_content) > 0:
+            slaveName = excludes_file_content[-1].strip()
+        else:
+            util.debug_print('no slavename passed in as argument AND we got empty slaves file!')
+            return False
+        
+    # remove that slavename from excludes
+    remove_line = slaveName + "\n"
+    util.debug_print('removing from excludes file the line: ' + remove_line)
+    update_excludes = util.updateFile('excludes', remove_line, addLine = False)
+    util.debug_print('update_excludes result: ')
+    util.debug_print(update_excludes)
+    
+    # confirm if VM is running or stopped or whatever
+    vmid = util.get_vm_id_by_name(slaveName)
+    raw_result = api.listVirtualMachines({'id':vmid})
+    result = raw_result.get('virtualmachine')[0]
+    ipaddr = result.get('nic')[0].get('ipaddress')
+    
+    while True:
+        current_state = result.get('state')
+        if current_state == 'Running':
+            util.debug_print('Machine is currently running')
+            
+            util.debug_print('trying to hdfs dfsadmin -refreshNodes')
+            ssh = SSHWrapper.SSHWrapper(config.MASTER_IP)
+            outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "/home/hduser/hadoop-2.7.0/bin/hdfs dfsadmin -refreshNodes"')
+        
+            util.debug_print('trying to yarn rmadmin -refreshNodes')
+            outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "/home/hduser/hadoop-2.7.0/bin/yarn rmadmin -refreshNodes"')
+            
+            break
+        elif current_state == 'Stopped':
+            util.debug_print('Machine is currently Stopped')
+            
+            # start up machine and wait till it finishes starting up
+            util.debug_print('Trying to deploy VM')
+            result = api.startVirtualMachine({'id': vmid})
+        
+            # now we wait for the async deployVirtualMachine() to finsih
+            waitResult = util.waitForAsync(result.get('jobid'))
+            if waitResult != True:
+                # whoops something went wrong!
+                return waitResult
+            
+            # SSHWrapper checks and loops and waits for connection so let's just use it for testing that
+            '''
+            WHY DOES RESULT NOT GET ANYTHING! INEED THE IP OF THE DEVICE!  MAYBE GET IT EARLIER?
+            '''
+            sshWaiting = SSHWrapper.SSHWrapper(ipaddr)
+            
+            util.debug_print('trying to start-dfs.sh')
+            ssh = SSHWrapper.SSHWrapper(config.MASTER_IP)
+            ssh.sudo_command('sudo -S su hduser -c "bash /home/hduser/hadoop-2.7.0/sbin/start-dfs.sh"')
+            
+            util.debug_print('trying to run start-yarn.sh')
+            ssh.sudo_command('sudo -S su hduser -c "bash /home/hduser/hadoop-2.7.0/sbin/start-yarn.sh"')
+            
+            break
+        elif current_state == 'Stopping' or current_state == 'Starting':
+            util.debug_print('OK, currently changing state, let us just call listVirtualMachines again and see.')
+            raw_result = api.listVirtualMachines({'id':vmid})
+            result = raw_result.get('virtualmachine')[0]
+        else:
+            # something went wrong here!
+            util.debug_print('ok, it is in an unexpected state: ' + str(current_state))
+            return False
+
 # basic global stuff
 api, pp = util.setup()
 

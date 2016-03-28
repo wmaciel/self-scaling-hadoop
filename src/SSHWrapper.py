@@ -48,27 +48,40 @@ class SSHWrapper():
         return stdout_data, stderr_data
     
     def sudo_command(self, sudo_command_string, password = None):
+        '''
+        Runs the command, then send the password via stdin
+        Input: String some commandline string
+        Output: output, error 
+        '''
+        util.debug_print('calling SSHWrapper sudo_command')
         # add sudo to the command string
         if not sudo_command_string.strip().startswith('sudo'):
             sudo_command_string = 'sudo -S ' + sudo_command_string
         
         # run sudo command
+        util.debug_print('calling command: ' + sudo_command_string)
         stdin, stdout, stderr = self.ssh.exec_command(sudo_command_string)
 
         # get password
+        util.debug_print('getting password')
         if password is None:
             password = os.environ.get('SSH_USER_PASSWORD') # we need it setup as environmental variable
             
         # sleep just to make sure it's good
+        util.debug_print('sleeping....')
         time.sleep(2)
         
         # give password
+        util.debug_print('passing password to stdin')
         stdin.write(password+'\n')
         stdin.flush()
         
         # get and return output
+        util.debug_print('stdout and stderr')
         stdout_data = stdout.readlines()
         stderr_data = stderr.readlines()
+        util.debug_print(stdout_data)
+        util.debug_print(stderr_data)
         
         return stdout_data, stderr_data
         

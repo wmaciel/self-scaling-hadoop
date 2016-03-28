@@ -9,7 +9,41 @@ import SSHWrapper
 import util
 import config
 import re
-from posix import remove
+
+def get_max_slavename(some_file_list, return_all = False):
+    '''
+    This function gets a list of slave names, one per line and either returns the "max" slave name
+    Input: ['dlw-Slave2\n', 'dlw-Slave3\n']
+    Output 'dlw-Slave3'
+    '''
+    util.debug_print('calling on util.get_max_slavename')
+    
+    # get max slave node name
+    max_slave_name = ''
+    max_slave_number = 0
+    all_slaves_list = list()
+    checker = re.compile(config.SLAVE_NAMING_REGEX)
+    for line in some_file_list:
+        matchobj = checker.match(line)
+        if matchobj:
+            
+            # add to all slave list
+            all_slaves_list.append(matchobj.group())
+            
+            # figure out max slavename
+            line_slave_number = int(matchobj.group(1))
+            if max_slave_number < line_slave_number:
+                max_slave_number = line_slave_number
+                max_slave_name = matchobj.group()
+    
+    if return_all:
+        util.debug_print('util.get_max_slave is returning list of slaves:')
+        util.debug_print(all_slaves_list)
+        return all_slaves_list
+    else:
+        util.debug_print('util.get_max_slave is returning: ' + max_slave_name)
+        return max_slave_name
+    
     
 def stopDecommissionedMachine(slaveName = None):
     '''
@@ -111,7 +145,7 @@ def decommission(also_stop_vm = True):
     
     # ok, now we know we can remove some 
     removable_slaves = list(set(all_slave_names) - set(excludes_list))
-    max_name = util.get_max_slavename(removable_slaves, return_all=False)
+    max_name = get_max_slavename(removable_slaves, return_all=False)
     util.debug_print('next slavename to remove is: ' + max_name)
     
     # ok, now we have the slave we want to decommission, update the excludes file
@@ -152,15 +186,14 @@ def removeDecommissionedMachine(slaveName = None):
         if len(excludes_file_content) > 0:
             slaveName = excludes_file_content[-1].strip()
         else:
-            util.debug_print('no slavename passed in as arument AND we got empty slaves file!')
+            util.debug_print('no slavename passed in as argument AND we got empty slaves file!')
             return False
         
     # remove that slavename from excludes
     remove_line = slaveName + "\n"
-    util.debug_print('line to be removed is: ' + remove_line)
-    util.debug_print('removing from excludes file')
+    util.debug_print('removing from excludes file the line: ' + remove_line)
     update_excludes = util.updateFile('excludes', remove_line, addLine = False)
-    util.debug_print('update_excludes: ')
+    util.debug_print('update_excludes result: ')
     util.debug_print(update_excludes)
         
     # remove that name from slaves file
