@@ -77,10 +77,12 @@ class SSHWrapper():
         stdin.flush()
         
         # get and return output
-        util.debug_print('stdout and stderr')
+        
         stdout_data = stdout.readlines()
         stderr_data = stderr.readlines()
+        util.debug_print('stdout:')
         util.debug_print(stdout_data)
+        util.debug_print('stderr')
         util.debug_print(stderr_data)
         
         return stdout_data, stderr_data

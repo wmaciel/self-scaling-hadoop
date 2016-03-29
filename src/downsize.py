@@ -74,36 +74,34 @@ def stopDecommissionedMachine(slaveName = None):
     # get status
     util.debug_print('Trying to get report on status of machines... ')
     outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "/home/hduser/hadoop-2.7.0/bin/hdfs dfsadmin -report"')
-    util.debug_print(outmsg)
-    util.debug_print(errmsg)
 
     # find the section for the slave we are interested in
     # eg line is "Name: 199.60.17.186:50010 (dlw-Slave71)"
-    util.debug_print('trying to find index of where to check status')
-    index_for_report_on_slave = -1
     checker = re.compile(config.REPORT_DATANODE_STATUS_STARTING_REGEX + str(slaveName) + '\)')
-    for line in outmsg:
-        matchobj = checker.match(line)
-        if matchobj:
-            util.debug_print('found the line! it is: ' + str(line))
-            index_for_report_on_slave = outmsg.index(line)
-            break
-        
-    # now check status of slavenode
-    commission_line = index_for_report_on_slave + 2
-    util.debug_print('commission line is: ' + str(commission_line))
+    util.debug_print('starting while loop to check for status of VM is done decommissioning')
     while True:
+        # get line for checking machine status
+        line = ''
+        commission_line = 0
+        # ok, I admin it might not be the best to put this here as the report MIGHT not chagne, but who knows... slower but safer for now
+        for line in outmsg:
+            matchobj = checker.match(line)
+            if matchobj:
+                util.debug_print('found the line! it is: ' + str(line))
+                commission_line = outmsg.index(line) + 2
+                break;
+
         line = outmsg[commission_line]
-        util.debug_print('status of decommissioning machine is: ' + str(line))
-        if line.find('Decommissioned'):
+        util.debug_print('on line: ' + str(commission_line) + ' status of decommissioning machine is: ' + str(line))
+        if line.find('Decommissioned') > -1:
             result = api.stopVirtualMachine({'id': vmid})
             util.debug_print('result from calling stopvm')
             util.debug_print(result)
-            
+             
             waitResult = util.waitForAsync(result.get('jobid'))
             util.debug_print('result of async wait is.....')
             util.debug_print(waitResult)
-            
+             
             if waitResult != True: # whoops something went wrong!
                 return waitResult
             
@@ -157,13 +155,9 @@ def decommission(also_stop_vm = True):
     
     util.debug_print('trying to hdfs dfsadmin -refreshNodes')
     outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "/home/hduser/hadoop-2.7.0/bin/hdfs dfsadmin -refreshNodes"')
-    util.debug_print(outmsg)
-    util.debug_print(errmsg)
 
     util.debug_print('trying to yarn rmadmin -refreshNodes')
     outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "/home/hduser/hadoop-2.7.0/bin/yarn rmadmin -refreshNodes"')
-    util.debug_print(outmsg)
-    util.debug_print(errmsg)
     
     if also_stop_vm:
         stopDecommissionedMachine(max_name)
@@ -205,6 +199,7 @@ def removeDecommissionedMachine(slaveName = None):
     # get vmid from slaveName
     vmid = util.get_vm_id_by_name(slaveName)
     
+    # NOW deestroy vm
     util.debug_print('Now we will be trying to destroy the machine with ID: ' + str(vmid))
     result = api.destroyVirtualMachine({'id': vmid})
     util.debug_print('result from calling destroy vm')
@@ -215,6 +210,13 @@ def removeDecommissionedMachine(slaveName = None):
     util.debug_print('result of async wait is.....')
     util.debug_print(waitResult)
     
+    # since we destroyed the vm, we can remove from master's /etc/hosts file
+    hosts = util.get_file_content(config.DEFAULT_DESTINATION_HOSTS_FILENAME)
+    checker = re.compile('.*' + slaveName + '\n')
+    to_be_removed_hosts_line = [line for line in hosts if checker.match(line) is not None]
+    util.debug_print('remove line:' + str(to_be_removed_hosts_line) + ' from /etc/hosts file')
+    util.updateFile('hosts', to_be_removed_hosts_line[0], addLine = False)
+
     ''' 
     DO WE NEED TO DO ANYTHING ELSE????? MAYBE RUN SOME SCRIPTS????
     '''
@@ -223,3 +225,4 @@ def removeDecommissionedMachine(slaveName = None):
     
 # basic global stuff
 api, pp = util.setup()
+

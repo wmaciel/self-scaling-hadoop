@@ -6,9 +6,16 @@ $HADOOP_HOME = /home/hduser/hadoop-2.7.0/
 1. Add hostname of target slave to HADOOP_HOME/etc/hadoop/excludes
 2. Stop slaves's data node by calling "hdfs dfsadmin -refreshNodes"
 3. Stop slave's resource manager by calling "yarn rmadmin -refreshNodes"
+3.5 dfs dfsadmin -report
 4. Stop slave's virtual machine
 
 -- This allows for a quick recommissioning of the slave node back to the cluster
+1. remove name from HADOOP_HOME/etc/hadoop/excludes
+1.1 if you shut off the macine, you have to run start-dfs.sh and start-yarn.sh to start the correct processes, THEN
+2. call "hdfs dfsadmin -refreshNodes"
+3. call "yarn rmadmin -refreshNodes"
+
+
 -- If this node is to be completely destroyed do:
 1. Remove slave's hostname from HADOOP_HOME/etc/hadoop/excludes
 2. Remove slave's hostname from HADOOP_HOME/etc/hadoop/slaves

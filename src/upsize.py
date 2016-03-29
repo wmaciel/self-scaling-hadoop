@@ -143,14 +143,7 @@ def recommission(slaveName = None):
     '''
     This function recommissions, aka removes from excludes list and runs correct script to add back to node
     Input: None
-    Outpu: None
-    NOTES: 
-    # we find out if excludes is empty
-    # if empty, return 
-    # if NOT empty, then get last row and remove from exlcudes file
-    # check if machine is on 
-    # if WAS off, then turn on, run start-dfs / start-yarn, run -refreshNodes scripts
-    # if was on, just run -refreshNodes script
+    Output: None
     '''
     util.debug_print('calling upsize recommission()')
     
@@ -192,12 +185,13 @@ def recommission(slaveName = None):
             util.debug_print('trying to yarn rmadmin -refreshNodes')
             outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "/home/hduser/hadoop-2.7.0/bin/yarn rmadmin -refreshNodes"')
             
+            
             break
         elif current_state == 'Stopped':
             util.debug_print('Machine is currently Stopped')
             
             # start up machine and wait till it finishes starting up
-            util.debug_print('Trying to deploy VM')
+            util.debug_print('Trying to start VM')
             result = api.startVirtualMachine({'id': vmid})
         
             # now we wait for the async deployVirtualMachine() to finsih
@@ -218,6 +212,12 @@ def recommission(slaveName = None):
             
             util.debug_print('trying to run start-yarn.sh')
             ssh.sudo_command('sudo -S su hduser -c "bash /home/hduser/hadoop-2.7.0/sbin/start-yarn.sh"')
+            
+            util.debug_print('trying to hdfs dfsadmin -refreshNodes')
+            ssh.sudo_command('sudo -S su hduser -c "/home/hduser/hadoop-2.7.0/bin/hdfs dfsadmin -refreshNodes"')
+        
+            util.debug_print('trying to yarn rmadmin -refreshNodes')
+            ssh.sudo_command('sudo -S su hduser -c "/home/hduser/hadoop-2.7.0/bin/yarn rmadmin -refreshNodes"')
             
             break
         elif current_state == 'Stopping' or current_state == 'Starting':
