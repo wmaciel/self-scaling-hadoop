@@ -5,18 +5,15 @@ import upsize
 import downsize
 import health_check
 
-INITIAL_PATIENCE = 50
-SLEEP = 10
-BIG_SLEEP = 120
-
-QUEUE_WEIGHT = 3
-MEMORY_WEIGHT = 2
-CPU_WEIGHT = 1
-
-HIGH_STATE_PERCENTAGE = 0.75
-LOW_STATE_PERCENTAGE = 0.25
-
-THRESHOLD = 0.8
+from config import INITIAL_PATIENCE
+from config import SLEEP
+from config import BIG_SLEEP
+from config import QUEUE_WEIGHT
+from config import MEMORY_WEIGHT
+from config import CPU_WEIGHT
+from config import HIGH_STATE_PERCENTAGE
+from config import LOW_STATE_PERCENTAGE
+from config import THRESHOLD
 
 
 def compute_cluster_load(w_queue, w_memory, w_cpu):
