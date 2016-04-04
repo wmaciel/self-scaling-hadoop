@@ -2,7 +2,8 @@ __author__ = 'walthermaciel'
 
 import urllib2
 import json
-
+import config
+import time
 
 '''
 Return a dictionary with metrics values about the cluster
@@ -34,13 +35,32 @@ Below is an example:
     "activeNodes":1
 }
 '''
-def get_cluster_metrics(ip, port):
+current_metrics = dict()
+def get_cluster_metrics(ip = None, port = None):
+    if ip is None:
+        ip = config.MASTER_IP
+        
+    if port is None:
+        port = config.METRIC_PORT
+    
     address = 'http://' + str(ip) + ':' + str(port) + '/ws/v1/cluster/metrics'
-    data = urllib2.urlopen(address).read()
-    metrics = json.loads(data)['clusterMetrics']
-    return metrics
+    
+    # check if it is cached ok
+    if len(current_metrics) == 0:
+        data = urllib2.urlopen(address).read()
+        current_metrics[time.gmtime()] = json.loads(data)['clusterMetrics']
+    return current_metrics
 
 
 def get_queue_size(ip, port):
     metrics = get_cluster_metrics(ip, port)
+    
     return int(metrics['appsPending'])
+
+
+
+
+
+
+
+
