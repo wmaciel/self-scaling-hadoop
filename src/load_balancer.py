@@ -1,6 +1,9 @@
 __author__ = 'walthermaciel'
-
 import time
+
+import upsize
+import downsize
+import health_check
 
 
 def get_queue_size():
@@ -24,11 +27,15 @@ def compute_cluster_load():
 
 
 def downsize_cluster():
-    # TODO:
-
+    downsize.decommission(True)
+    downsize.removeDecommissionedMachine()
+    
+    return True
 
 def upsize_cluster():
-    # TODO:
+    upsize.upsize()
+    
+    return True
 
 
 def low_state(low_threshold):
