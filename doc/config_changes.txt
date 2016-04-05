@@ -1,0 +1,10 @@
+yarn.nodemanager.resource.cpu-vcores	2	Number of CPU cores that can be allocated for containers.
+
+yarn.scheduler.maximum-allocation-vcores	2	The maximum allocation for every container request at the RM, in terms of virtual CPU cores. Requests higher than this won't take effect, and will get capped to this value.
+
+yarn.scheduler.minimum-allocation-mb	64	The minimum allocation for every container request at the RM, in MBs. Memory requests lower than this won't take effect, and the specified value will get allocated at minimum.
+
+yarn.scheduler.maximum-allocation-mb	512	The maximum allocation for every container request at the RM, in MBs. Memory requests higher than this won't take effect, and will get capped to this value.
+
+yarn.nodemanager.resource.memory-mb	1024	Amount of physical memory, in MB, that can be allocated for containers.
+
