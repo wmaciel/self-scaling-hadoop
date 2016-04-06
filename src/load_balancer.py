@@ -17,7 +17,14 @@ from config import LOW_STATE_PERCENTAGE
 from config import THRESHOLD
 
 
-def compute_cluster_load(w_queue, w_memory, w_cpu):
+def compute_cluster_load(w_queue = None, w_memory = None, w_cpu = None):
+    if w_queue is None:
+        w_queue = QUEUE_WEIGHT
+    if w_memory is None:
+        w_memory = MEMORY_WEIGHT
+    if w_cpu is None:
+        w_cpu = CPU_WEIGHT
+    
     metrics = health_check.get_cluster_metrics()
     queue_load = float(int(metrics['appsPending'])) / \
                  sum([
@@ -86,7 +93,7 @@ def high_state(threshold, high_threshold, patience):
     return patience
 
 
-def main(threshold, w_queue, w_memory, w_cpu):
+def main(threshold):
     high_threshold = HIGH_STATE_PERCENTAGE * threshold
     low_threshold = LOW_STATE_PERCENTAGE * threshold
     patience = INITIAL_PATIENCE
@@ -97,7 +104,7 @@ def main(threshold, w_queue, w_memory, w_cpu):
 
     util.debug_print('Starting the main load balancer loop...')
     while True:
-        load = compute_cluster_load(w_queue, w_memory, w_cpu)
+        load = compute_cluster_load()
         util.debug_print('current load is: ' + str(load))
         util.debug_print('last_state: ' + str(last_state))
         if load < low_threshold:
@@ -120,4 +127,4 @@ def main(threshold, w_queue, w_memory, w_cpu):
 
 
 if __name__ == '__main__':
-    main(THRESHOLD, QUEUE_WEIGHT, MEMORY_WEIGHT, CPU_WEIGHT)
+    main(THRESHOLD)
