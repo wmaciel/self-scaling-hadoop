@@ -35,7 +35,6 @@ Below is an example:
     "activeNodes":1
 }
 '''
-current_metrics = dict()
 def get_cluster_metrics(ip = None, port = None):
     if ip is None:
         ip = config.MASTER_IP
@@ -45,11 +44,9 @@ def get_cluster_metrics(ip = None, port = None):
     
     address = 'http://' + str(ip) + ':' + str(port) + '/ws/v1/cluster/metrics'
     
-    # check if it is cached ok
-    if len(current_metrics) == 0:
-        data = urllib2.urlopen(address).read()
-        current_metrics[time.gmtime()] = json.loads(data)['clusterMetrics']
-    return current_metrics
+    # check if it is cached ok    
+    data = urllib2.urlopen(address).read()
+    return json.loads(data)['clusterMetrics']
 
 
 def get_queue_size(ip, port):
