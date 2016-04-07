@@ -89,14 +89,14 @@ def upsize_cluster():
 
 
 def low_state(low_threshold, patience):
-    util.debug_print('LOW state with patience:' + str(patience))
+    util.debug_print('LOW state with patience: ' + str(patience))
     load = compute_cluster_load()
     while load < low_threshold:
         patience -= 1
         log_load(load, 'low', patience)
         time.sleep(SLEEP)
         
-        util.debug_print('patience: '+str(patience))
+        util.debug_print('patience: ' + str(patience) + ',\tload: ' + str(load))
         if patience < 0:
             util.debug_print('patience is 0, downsize!')
             downsize_cluster()
@@ -109,7 +109,7 @@ def low_state(low_threshold, patience):
 
 
 def high_state(threshold, high_threshold, patience):
-    util.debug_print('HIGH state with patience:'+str(patience))
+    util.debug_print('HIGH state with patience: ' + str(patience))
     load = compute_cluster_load()
 
     while load > high_threshold:
@@ -122,7 +122,7 @@ def high_state(threshold, high_threshold, patience):
 
         time.sleep(SLEEP)
         
-        util.debug_print('patience is now: '+str(patience))
+        util.debug_print('patience: ' + str(patience) + ',\tload: ' + str(load))
         if patience < 0:
             util.debug_print('patience is 0, UPSIZE!')
             upsize_cluster()
@@ -161,9 +161,10 @@ def main(threshold):
                 patience = INITIAL_PATIENCE
             patience = high_state(threshold, high_threshold, patience)
         else:
+            util.debug_print('GOOD state with patience: ' + str(patience))
             patience += 1
             time.sleep(SLEEP)
-            util.debug_print('not in high or low state, thus increment patience to: '+str(patience))
+            util.debug_print('patience: ' + str(patience) + ',\tload: ' + str(load))
             log_load(load, 'good', patience)
             
         if patience > INITIAL_PATIENCE or patience <= 0:
