@@ -51,7 +51,7 @@ def stopDecommissionedMachine(slaveName = None):
     Input String slavename
     Output: None
     '''
-    util.debug_print('calling downsize stopDecommissionedMachine()')
+    util.debug_print('calling on downsize stopDecommissionedMachine()')
     
     if slaveName is None:
         util.debug_print('not slaveName passed as parameter')
@@ -94,17 +94,14 @@ def stopDecommissionedMachine(slaveName = None):
         line = outmsg[commission_line]
         util.debug_print('on line: ' + str(commission_line) + ' status of decommissioning machine is: ' + str(line))
         if line.find('Decommissioned') > -1:
+            util.debug_print('VM is finally decommissioned...., trying to stop VM now')
             result = api.stopVirtualMachine({'id': vmid})
-            util.debug_print('result from calling stopvm')
-            util.debug_print(result)
              
             waitResult = util.waitForAsync(result.get('jobid'))
-            util.debug_print('result of async wait is.....')
-            util.debug_print(waitResult)
              
             if waitResult != True: # whoops something went wrong!
                 return waitResult
-            
+                        
             # let's get out of here!
             util.debug_print('DONE, we waited for it to finish decomissioning, then we stopped the VM! ')
             break;
@@ -112,8 +109,6 @@ def stopDecommissionedMachine(slaveName = None):
         # ok, not decommissioned yet, so callthe ssh command again!
         util.debug_print('checking again inside forever WHileTrue loop, as it is not in decomissioned state.')
         outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "/home/hduser/hadoop-2.7.0/bin/hdfs dfsadmin -report"')
-        util.debug_print(outmsg)
-        util.debug_print(errmsg)
         
     return True
     
@@ -123,7 +118,7 @@ def decommission(also_stop_vm = True):
     Input: None
     Output: None
     '''
-    util.debug_print('Trying to decommision')
+    util.debug_print('Trying to decommission')
     
     # get all slave names in slaves file
     all_slave_names = map(str.strip, util.get_file_content(config.DEFAULT_DESTINATION_SLAVES_FILENAME))
@@ -135,7 +130,7 @@ def decommission(also_stop_vm = True):
     util.debug_print('current excludes list:')
     util.debug_print(excludes_list)
     
-    # basic sanity check to see if we should try to decomission 
+    # basic sanity check to see if we should try to decommission 
     remaining_slaves =  len(all_slave_names) - len(excludes_list)
     if remaining_slaves <= config.MINIMUM_DATANODE_SIZE:
         util.debug_print('We have reached the minimum cluster size of ' + str(remaining_slaves) + ', skipping decomissioning.')
@@ -187,14 +182,10 @@ def removeDecommissionedMachine(slaveName = None):
     remove_line = slaveName + "\n"
     util.debug_print('removing from excludes file the line: ' + remove_line)
     update_excludes = util.updateFile('excludes', remove_line, addLine = False)
-    util.debug_print('update_excludes result: ')
-    util.debug_print(update_excludes)
         
     # remove that name from slaves file
-    util.debug_print('removing from slaves file')
+    util.debug_print('removing from slaves file the line: ' + str(remove_line))
     update_slaves = util.updateFile('slaves', remove_line, addLine = False)
-    util.debug_print('update_slaves: ')
-    util.debug_print(update_slaves)
     
     # get vmid from slaveName
     vmid = util.get_vm_id_by_name(slaveName)
@@ -202,13 +193,9 @@ def removeDecommissionedMachine(slaveName = None):
     # NOW deestroy vm
     util.debug_print('Now we will be trying to destroy the machine with ID: ' + str(vmid))
     result = api.destroyVirtualMachine({'id': vmid})
-    util.debug_print('result from calling destroy vm')
-    util.debug_print(result)
     
     util.debug_print('waiting for the destroyed machine to be finished being destroyed')
     waitResult = util.waitForAsync(result.get('jobid'))
-    util.debug_print('result of async wait is.....')
-    util.debug_print(waitResult)
     
     # since we destroyed the vm, we can remove from master's /etc/hosts file
     hosts = util.get_file_content(config.DEFAULT_DESTINATION_HOSTS_FILENAME)
@@ -217,10 +204,7 @@ def removeDecommissionedMachine(slaveName = None):
     util.debug_print('remove line:' + str(to_be_removed_hosts_line) + ' from /etc/hosts file')
     util.updateFile('hosts', to_be_removed_hosts_line[0], addLine = False)
 
-    ''' 
-    DO WE NEED TO DO ANYTHING ELSE????? MAYBE RUN SOME SCRIPTS????
-    '''
-    
+    util.debug_print('Done destroying VM.')    
     return True
     
 # basic global stuff

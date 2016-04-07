@@ -13,7 +13,6 @@ import config
 
 # function that creates/sets the global counter
 def getNextSlaveName(filename=None):
-    
     # make filename correct
     if filename is None:
         filename = config.DEFAULT_GLOBAL_COUNTER_FILENAME
@@ -67,7 +66,7 @@ def getNextSlaveName(filename=None):
     return next_name
 
 def upsize():
-
+    util.debug_print('calling upsize()')
     # now we need to get the next slave name
     util.debug_print('Trying to get slave name....') 
     next_name = getNextSlaveName()
@@ -96,6 +95,7 @@ def upsize():
         # oh man... failed!
         pp.pprint(result)
         return
+    
     util.debug_print('OK, just created the VM')
 
     ''' now get ip of new machine ''' 
@@ -117,12 +117,10 @@ def upsize():
     # update hosts file on master
     util.debug_print('Trying update Hosts file with line: '+new_hosts_line)
     util.updateFile('hosts', new_hosts_line)
-    util.debug_print('Updated hosts file')
     
     # update slaves file on master
     util.debug_print('Trying to update slaves file with name:' + next_name)
     util.updateFile('slaves', next_name + "\n")
-    util.debug_print('Done updating slaves file')
     
     # now to start the start-dfs.sh and start-yarn.sh
     ssh = SSHWrapper.SSHWrapper(config.MASTER_IP)
@@ -130,12 +128,10 @@ def upsize():
     util.debug_print('trying to start-dfs.sh')
     outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "bash /home/hduser/hadoop-2.7.0/sbin/start-dfs.sh"')
     util.debug_print(outmsg)
-    util.debug_print(errmsg)
     
     util.debug_print('trying to run start-yarn.sh')
     outmsg, errmsg = ssh.sudo_command('sudo -S su hduser -c "bash /home/hduser/hadoop-2.7.0/sbin/start-yarn.sh"')
     util.debug_print(outmsg)
-    util.debug_print(errmsg)
     
     util.debug_print('DONE!')
 
@@ -164,8 +160,6 @@ def recommission(slaveName = None):
     remove_line = slaveName + "\n"
     util.debug_print('removing from excludes file the line: ' + remove_line)
     update_excludes = util.updateFile('excludes', remove_line, addLine = False)
-    util.debug_print('update_excludes result: ')
-    util.debug_print(update_excludes)
     
     # confirm if VM is running or stopped or whatever
     vmid = util.get_vm_id_by_name(slaveName)
