@@ -68,7 +68,7 @@ class SSHWrapper():
             password = os.environ.get('SSH_USER_PASSWORD') # we need it setup as environmental variable
             
         # sleep just to make sure it's good
-        util.debug_print('sleeping....')
+        util.debug_print('sleeping....just to make sure we get prompted for the password')
         time.sleep(2)
         
         # give password
@@ -77,13 +77,8 @@ class SSHWrapper():
         stdin.flush()
         
         # get and return output
-        
         stdout_data = stdout.readlines()
         stderr_data = stderr.readlines()
-        util.debug_print('stdout:')
-        util.debug_print(stdout_data)
-        util.debug_print('stderr')
-        util.debug_print(stderr_data)
         
         return stdout_data, stderr_data
         

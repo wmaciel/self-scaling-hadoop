@@ -5,6 +5,7 @@ Created on Mar 21, 2016
 '''
 ###### GENERAL STUFF ######
 DEBUG = True
+ASYNC_SLEEP_FOR = 1
 
 ###### USED FOR SLAVE NAME STUFF ######
 DEFAULT_GLOBAL_COUNTER_FILENAME = '/home/cloud/cmpt733_global_counter.txt'

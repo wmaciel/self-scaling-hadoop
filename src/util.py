@@ -10,6 +10,7 @@ import time
 import SSHWrapper
 import config
 import re
+from test import vmid
 
 def setup():
     # setup basic api stuff
@@ -18,19 +19,19 @@ def setup():
     return api, pp
 
 def waitForAsync(jobid):
-    SLEEP_FOR = 1   # so we don't flood the network with requests.... hopefully!
+    debug_print('waiting for job: ' + str(jobid))
     while True:
-        time.sleep(SLEEP_FOR)
+        time.sleep(config.ASYNC_SLEEP_FOR)
         deploy_status = api.queryAsyncJobResult({'jobId': jobid})
         job_status = int( deploy_status.get('jobstatus') )
 
         if job_status == 1:
             break;
         elif job_status == 2:
-            print str(deploy_status.get('jobresult'))
-            pp.pprint(deploy_status)
+            debug_print(str(deploy_status.get('jobresult')))
             return -2
     
+    debug_print('Done waiting for: ' + str(jobid))
     return True
 
 def updateFile(fileType='hosts', newLine = '', filename=None, addLine=True):
@@ -123,12 +124,11 @@ def get_file_content(dest_filename, ip = None):
     
     # get file from master...
     some_file_list, some_error = ssh.sudo_command(get_file_command)
-    debug_print(some_file_list)
-    debug_print(some_error)
     
     return some_file_list
 
 def update_hostname(ip, newName, vmID):
+    debug_print('calling update_hostname for ip: ' + str(ip) + ', with new name: ' + str(newName))
     # init stuff for ssh
     ssh = SSHWrapper.SSHWrapper(ip)
     
@@ -143,7 +143,6 @@ def update_hostname(ip, newName, vmID):
     ssh.put_sftp(filename, filename)
     
     # copy from /home/cloud to /etc/hostname in slave
-    debug_print('trying to mv from ' + filename + ' to ' + dest_filename)
     ssh.sudo_command('mv -f '+filename+' '+dest_filename)
     
     # restart machine
@@ -162,6 +161,7 @@ def restart_machine(vmID, ip):
     # make sure connection is valid for machine
     SSHWrapper.SSHWrapper(ip)
     
+    debug_print('finish restarting machine: ' + str(vmID))
     return True
 
 def get_vm_id_by_name(slaveName):
