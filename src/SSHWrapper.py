@@ -53,26 +53,22 @@ class SSHWrapper():
         Input: String some commandline string
         Output: output, error 
         '''
-        util.debug_print('calling SSHWrapper sudo_command')
+        util.debug_print('calling SSHWrapper sudo_command: ' + sudo_command_string)
         # add sudo to the command string
         if not sudo_command_string.strip().startswith('sudo'):
             sudo_command_string = 'sudo -S ' + sudo_command_string
         
         # run sudo command
-        util.debug_print('calling command: ' + sudo_command_string)
         stdin, stdout, stderr = self.ssh.exec_command(sudo_command_string)
 
         # get password
-        util.debug_print('getting password')
         if password is None:
             password = os.environ.get('SSH_USER_PASSWORD') # we need it setup as environmental variable
             
         # sleep just to make sure it's good
-        util.debug_print('sleeping....just to make sure we get prompted for the password')
         time.sleep(2)
         
         # give password
-        util.debug_print('passing password to stdin')
         stdin.write(password+'\n')
         stdin.flush()
         
