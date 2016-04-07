@@ -60,8 +60,7 @@ def updateFile(fileType='hosts', newLine = '', filename=None, addLine=True):
     
     # get file from master...
     some_file_list, some_error = ssh.command(get_file_command)
-    debug_print(some_file_list)
-    debug_print(some_error)
+
     
     # append or remove newLine from file
     if addLine:
@@ -74,9 +73,6 @@ def updateFile(fileType='hosts', newLine = '', filename=None, addLine=True):
         except:
             debug_print('can not find line "' + newLine + '" in file: ' + dest_filename)
             return -5
-        
-    debug_print('updated file:')
-    debug_print(some_file_list)
     
     # save file locally
     with open(filename, 'w') as fh:
@@ -90,18 +86,12 @@ def updateFile(fileType='hosts', newLine = '', filename=None, addLine=True):
     # now copy hosts from destination to correct location on remote
     debug_print('trying to move from cloud directory: ' + filename + ' to final directory: ' + dest_filename + ' at master')
     some_file_list, some_error =ssh.sudo_command('mv ' + filename + ' ' + dest_filename)
-    debug_print(some_file_list)
-    debug_print(some_error)
     
     debug_print('trying to change to correct file owner for ' + fileType)
     if fileType == 'hosts':
         some_file_list, some_error =ssh.sudo_command('chown root:root ' + dest_filename)
-        debug_print(some_file_list)
-        debug_print(some_error)
     elif fileType == 'slaves' or fileType == 'excludes':
         some_file_list, some_error =ssh.sudo_command('chown hduser:hadoop ' + dest_filename)
-        debug_print(some_file_list)
-        debug_print(some_error)
     else:
         return -6
     

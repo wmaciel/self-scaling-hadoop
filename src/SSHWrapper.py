@@ -83,8 +83,6 @@ class SSHWrapper():
         return stdout_data, stderr_data
         
     def put_sftp(self, localfile, remotefile):
-        util.debug_print('localfile: '+localfile)
-        util.debug_print('remotefile: '+remotefile)
         ftp = self.ssh.open_sftp()
         ftp.put(localfile, remotefile)
         return True
