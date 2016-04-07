@@ -25,7 +25,7 @@ def init_log(path):
         print 'Fatal error, log file could not be opened'
         exit()
     else:
-        log_fp.write('time,load,state,patience\n')
+        log_fp.write('time,state,patience\n')
         log_fp.close()
 
 
@@ -87,7 +87,7 @@ def low_state(low_threshold, patience):
     load = compute_cluster_load()
     while load < low_threshold:
         patience -= 1
-        # log_load(load, 'low', patience)
+        log_load(load, 'low', patience)
         g_patience = patience
         time.sleep(SLEEP)
         
