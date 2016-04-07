@@ -31,7 +31,7 @@ def init_log(path):
 def log_load(load, state, patience):
     timestamp = time.time()
     log_fp = open(LOG_FILE_PATH, 'a')
-    log_fp.write(str(timestamp) + ',' + str(load) + ',' + state + ',' + str(patience))
+    log_fp.write(str(timestamp) + ',' + str(load) + ',' + state + ',' + str(patience) + '\n')
     log_fp.close()
 
 
