@@ -129,7 +129,7 @@ def get_file_content(dest_filename, ip = None):
     return some_file_list
 
 def update_hostname(ip, newName, vmID):
-        # init stuff for ssh
+    # init stuff for ssh
     ssh = SSHWrapper.SSHWrapper(ip)
     
     filename = config.DEFAULT_LOCAL_HOSTNAME_FILENAME
@@ -147,17 +147,21 @@ def update_hostname(ip, newName, vmID):
     ssh.sudo_command('mv -f '+filename+' '+dest_filename)
     
     # restart machine
-    restart_machine(vmID)
+    restart_machine(vmID, ip)
     
     
-def restart_machine(vmID):
+def restart_machine(vmID, ip):
+    debug_print('calling restart_machine for: ' +str(vmID) + ' with ip: '+str(ip))
     result = api.rebootVirtualMachine({'id':vmID})
-    
+
     waiting = waitForAsync(result.get('jobid'))
     
     if waiting != True: # whoops something went wrong!
         return waiting
         
+    # make sure connection is valid for machine
+    SSHWrapper.SSHWrapper(ip)
+    
     return True
 
 def get_vm_id_by_name(slaveName):
