@@ -1,0 +1,17 @@
+Copy Data:
+scp -r src/examples/euler-input/ hduser@199.60.17.143:project/examples/
+hdfs dfs -mkdir /user/hduser/project/
+hdfs dfs -mkdir /user/hduser/project/examples/
+hdfs dfs -copyFromLocal ./euler-input/ /user/hduser/project/examples/
+hdfs dfs -ls /user/hduser/project/examples/
+
+Compile Java example:
+export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/home/hduser/project/examples/*
+
+cd /home/hduser/project/examples/
+javac -cp `hadoop classpath` EulerEstimator.java
+
+jar cf EulerEstimator.jar EulerEstimator*.class
+
+Run Tasks:
+hadoop jar ./EulerEstimator.jar EulerEstimator -D mapreduce.job.reduces=0 /user/hduser/project/examples/euler-input/input1 /user/hduser/output
