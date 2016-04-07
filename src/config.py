@@ -50,4 +50,4 @@ CPU_WEIGHT = 1
 HIGH_STATE_PERCENTAGE = 0.75
 LOW_STATE_PERCENTAGE = 0.25
 THRESHOLD = 0.8
-LOG_FILE_PATH = '~/load_log.csv'
+LOG_FILE_PATH = '/home/cloud/load_log.csv'
