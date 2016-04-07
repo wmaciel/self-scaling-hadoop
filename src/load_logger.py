@@ -1,6 +1,6 @@
 __author__ = 'walthermaciel'
 
-from load_balancer import compute_cluster_load, get_balancer_state
+from load_balancer import compute_cluster_load
 from health_check import get_cluster_metrics
 import config
 import datetime
@@ -13,7 +13,7 @@ def build_log_header():
     header_string = 'time,'
     for k in metrics.keys():
         header_string += str(k) + ','
-    header_string += 'load,state,patience\n'
+    header_string += 'load\n'
     return header_string
 
 
@@ -23,18 +23,13 @@ def build_log_line():
     metrics = get_cluster_metrics(config.MASTER_IP, config.METRIC_PORT)
     load = compute_cluster_load()
     timestamp = datetime.datetime.now().isoformat()
-    state, patience = get_balancer_state()
 
     final_string += str(timestamp) + ','
 
     for mv in metrics.values():
         final_string += str(mv) + ','
 
-    final_string += str(load) + ','
-
-    final_string += str(state) + ','
-
-    final_string += str(patience) + '\n'
+    final_string += str(load) + '\n'
 
     return final_string
 

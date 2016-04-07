@@ -16,16 +16,7 @@ from config import CPU_WEIGHT
 from config import HIGH_STATE_PERCENTAGE
 from config import LOW_STATE_PERCENTAGE
 from config import THRESHOLD
-from config import LOG_FILE_PATH
-
-g_patience = INITIAL_PATIENCE
-g_state = 'uninitialized'
-
-
-def get_balancer_state():
-    global g_patience
-    global g_state
-    return g_state, g_patience
+from config import BALANCER_LOG_FILE_PATH
 
 
 def init_log(path):
@@ -40,7 +31,7 @@ def init_log(path):
 
 def log_load(load, state, patience):
     timestamp = datetime.datetime.now().isoformat()
-    log_fp = open(LOG_FILE_PATH, 'a')
+    log_fp = open(BALANCER_LOG_FILE_PATH, 'a')
     log_fp.write(timestamp + ',' + state + ',' + str(patience) + '\n')
     log_fp.close()
 
@@ -155,7 +146,7 @@ def main(threshold):
 
     last_state = None
 
-    init_log(LOG_FILE_PATH)
+    init_log(BALANCER_LOG_FILE_PATH)
 
     util.debug_print('Starting the main load balancer loop...')
     while True:

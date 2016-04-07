@@ -52,3 +52,4 @@ HIGH_STATE_PERCENTAGE = 0.75
 LOW_STATE_PERCENTAGE = 0.25
 THRESHOLD = 0.8
 LOG_FILE_PATH = '/home/cloud/load_log.csv'
+BALANCER_LOG_FILE_PATH = '/home/cloud/balancer_load_log.csv'
