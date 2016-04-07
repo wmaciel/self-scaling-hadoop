@@ -1,5 +1,6 @@
 __author__ = 'walthermaciel'
 import time
+import datetime
 
 import upsize
 import downsize
@@ -29,9 +30,9 @@ def init_log(path):
 
 
 def log_load(load, state, patience):
-    timestamp = time.time()
+    timestamp = datetime.datetime.now().isoformat()
     log_fp = open(LOG_FILE_PATH, 'a')
-    log_fp.write(str(timestamp) + ',' + str(load) + ',' + state + ',' + str(patience) + '\n')
+    log_fp.write(timestamp + ',' + str(load) + ',' + state + ',' + str(patience) + '\n')
     log_fp.close()
 
 
