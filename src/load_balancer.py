@@ -15,6 +15,32 @@ from config import CPU_WEIGHT
 from config import HIGH_STATE_PERCENTAGE
 from config import LOW_STATE_PERCENTAGE
 from config import THRESHOLD
+from config import LOG_FILE_PATH
+
+
+log_fp = None
+
+
+def init_log(path):
+    global log_fp
+    log_fp = open(path, 'w')
+    if log_fp is None:
+        print 'Fatal error, log file could not be opened'
+        exit()
+    else:
+        log_fp.write('time,load,state,patience\n')
+        return log_fp
+
+
+def close_log():
+    global log_fp
+    log_fp.close()
+
+
+def log_load(load, state, patience):
+    global log_fp
+    timestamp = time.time()
+    log_fp.write('%f,%f,%s,%d\n'.format(timestamp, load, state, patience))
 
 
 def compute_cluster_load(w_queue = None, w_memory = None, w_cpu = None):
@@ -63,30 +89,36 @@ def upsize_cluster():
 
 
 def low_state(low_threshold, patience):
-    util.debug_print('in low_state() with patience:' + str(patience))
-    while compute_cluster_load() < low_threshold:
+    util.debug_print('LOW state with patience:' + str(patience))
+    load = compute_cluster_load()
+    while load < low_threshold:
         patience -= 1
+        log_load(load, 'low', patience)
         time.sleep(SLEEP)
         
-        util.debug_print('low patience is now: '+str(patience))
+        util.debug_print('patience: '+str(patience))
         if patience < 0:
             util.debug_print('patience is 0, downsize!')
             downsize_cluster()
             time.sleep(BIG_SLEEP)
             break
 
+        load = compute_cluster_load()
+
     return patience
 
 
 def high_state(threshold, high_threshold, patience):
-    util.debug_print('in high_state() with patience:'+str(patience))
+    util.debug_print('HIGH state with patience:'+str(patience))
     load = compute_cluster_load()
 
     while load > high_threshold:
         if load > threshold:
             patience -= 2
+            log_load(load, 'very high', patience)
         else:
             patience -= 1
+            log_load(load, 'high', patience)
 
         time.sleep(SLEEP)
         
@@ -111,6 +143,8 @@ def main(threshold):
 
     last_state = None
 
+    init_log(LOG_FILE_PATH)
+
     util.debug_print('Starting the main load balancer loop...')
     while True:
         load = compute_cluster_load()
@@ -130,6 +164,7 @@ def main(threshold):
             patience += 1
             time.sleep(SLEEP)
             util.debug_print('not in high or low state, thus increment patience to: '+str(patience))
+            log_load(load, 'good', patience)
             
         if patience > INITIAL_PATIENCE or patience <= 0:
             patience = INITIAL_PATIENCE
