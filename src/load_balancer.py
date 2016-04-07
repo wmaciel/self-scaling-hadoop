@@ -18,29 +18,21 @@ from config import THRESHOLD
 from config import LOG_FILE_PATH
 
 
-log_fp = None
-
-
 def init_log(path):
-    global log_fp
     log_fp = open(path, 'w')
     if log_fp is None:
         print 'Fatal error, log file could not be opened'
         exit()
     else:
         log_fp.write('time,load,state,patience\n')
-        return log_fp
-
-
-def close_log():
-    global log_fp
-    log_fp.close()
+        log_fp.close()
 
 
 def log_load(load, state, patience):
-    global log_fp
     timestamp = time.time()
-    log_fp.write('%f,%f,%s,%d\n'.format(timestamp, load, state, patience))
+    log_fp = open(LOG_FILE_PATH, 'a')
+    log_fp.write('%f,%f,%s,%d\n' % timestamp, load, state, patience)
+    log_fp.close()
 
 
 def compute_cluster_load(w_queue = None, w_memory = None, w_cpu = None):
