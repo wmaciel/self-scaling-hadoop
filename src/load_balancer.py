@@ -20,12 +20,11 @@ def compute_cluster_load(w_queue, w_memory, w_cpu):
     metrics = health_check.get_cluster_metrics()
     queue_load = float(int(metrics['appsPending'])) / \
                  sum([
-                     int(metrics['appsSubmitted']),
                      int(metrics['appsPending']),
                      int(metrics['appsRunning'])
                  ])
-    memory_load = float(int(metrics['totalMB']) - int(metrics['availableMB'])) / int(metrics['totalMB'])
-    cpu_load = float(int(metrics['totalVirtualCores']) - int(metrics['availableVirtualCores'])) / int(metrics['totalVirtualCores'])
+    memory_load = float(int(metrics['allocatedMB'])) / int(metrics['totalMB'])
+    cpu_load = float(int(metrics['allocatedVirtualCores'])) / int(metrics['totalVirtualCores'])
 
     return sum([
         w_queue * queue_load,
