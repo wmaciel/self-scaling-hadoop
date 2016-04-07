@@ -38,11 +38,11 @@ def init_log(path):
         log_fp.close()
 
 
-# def log_load(load, state, patience):
-#     timestamp = datetime.datetime.now().isoformat()
-#     log_fp = open(LOG_FILE_PATH, 'a')
-#     log_fp.write(timestamp + ',' + str(load) + ',' + state + ',' + str(patience) + '\n')
-#     log_fp.close()
+def log_load(load, state, patience):
+    timestamp = datetime.datetime.now().isoformat()
+    log_fp = open(LOG_FILE_PATH, 'a')
+    log_fp.write(timestamp + ',' + state + ',' + str(patience) + '\n')
+    log_fp.close()
 
 
 def compute_cluster_load(w_queue = None, w_memory = None, w_cpu = None):
@@ -121,11 +121,11 @@ def high_state(threshold, high_threshold, patience):
     while load > high_threshold:
         if load > threshold:
             patience -= 2
-            # log_load(load, 'very high', patience)
+            log_load(load, 'very high', patience)
             g_state = 'very high'
         else:
             patience -= 1
-            # log_load(load, 'high', patience)
+            log_load(load, 'high', patience)
             g_state = 'high'
 
         g_patience = patience
@@ -163,24 +163,21 @@ def main(threshold):
         util.debug_print('current load is: ' + str(load))
         util.debug_print('last_state: ' + str(last_state))
         if load < low_threshold:
-            g_state = 'low'
             if last_state != 'low':
                 last_state = 'low'
                 patience = INITIAL_PATIENCE
             patience = low_state(low_threshold, patience)
         elif load > high_threshold:
-            g_state = 'high'
             if last_state != 'high':
                 last_state = 'high'
                 patience = INITIAL_PATIENCE
             patience = high_state(threshold, high_threshold, patience)
         else:
-            g_state = 'good'
             util.debug_print('GOOD state with patience: ' + str(patience))
             patience += 1
             time.sleep(SLEEP)
             util.debug_print('patience: ' + str(patience) + ',\tload: ' + str(load))
-            # log_load(load, 'good', patience)
+            log_load(load, 'good', patience)
             
         if patience > INITIAL_PATIENCE or patience <= 0:
             patience = INITIAL_PATIENCE
