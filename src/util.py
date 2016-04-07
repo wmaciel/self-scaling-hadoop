@@ -10,6 +10,7 @@ import time
 import SSHWrapper
 import config
 import re
+from test import vmid
 
 def setup():
     # setup basic api stuff
@@ -18,19 +19,19 @@ def setup():
     return api, pp
 
 def waitForAsync(jobid):
-    SLEEP_FOR = 1   # so we don't flood the network with requests.... hopefully!
+    debug_print('waiting for job: ' + str(jobid))
     while True:
-        time.sleep(SLEEP_FOR)
+        time.sleep(config.ASYNC_SLEEP_FOR)
         deploy_status = api.queryAsyncJobResult({'jobId': jobid})
         job_status = int( deploy_status.get('jobstatus') )
 
         if job_status == 1:
             break;
         elif job_status == 2:
-            print str(deploy_status.get('jobresult'))
-            pp.pprint(deploy_status)
+            debug_print(str(deploy_status.get('jobresult')))
             return -2
     
+    debug_print('Done waiting for: ' + str(jobid))
     return True
 
 def updateFile(fileType='hosts', newLine = '', filename=None, addLine=True):
@@ -59,8 +60,7 @@ def updateFile(fileType='hosts', newLine = '', filename=None, addLine=True):
     
     # get file from master...
     some_file_list, some_error = ssh.command(get_file_command)
-    debug_print(some_file_list)
-    debug_print(some_error)
+
     
     # append or remove newLine from file
     if addLine:
@@ -73,9 +73,6 @@ def updateFile(fileType='hosts', newLine = '', filename=None, addLine=True):
         except:
             debug_print('can not find line "' + newLine + '" in file: ' + dest_filename)
             return -5
-        
-    debug_print('updated file:')
-    debug_print(some_file_list)
     
     # save file locally
     with open(filename, 'w') as fh:
@@ -89,18 +86,12 @@ def updateFile(fileType='hosts', newLine = '', filename=None, addLine=True):
     # now copy hosts from destination to correct location on remote
     debug_print('trying to move from cloud directory: ' + filename + ' to final directory: ' + dest_filename + ' at master')
     some_file_list, some_error =ssh.sudo_command('mv ' + filename + ' ' + dest_filename)
-    debug_print(some_file_list)
-    debug_print(some_error)
     
     debug_print('trying to change to correct file owner for ' + fileType)
     if fileType == 'hosts':
         some_file_list, some_error =ssh.sudo_command('chown root:root ' + dest_filename)
-        debug_print(some_file_list)
-        debug_print(some_error)
     elif fileType == 'slaves' or fileType == 'excludes':
         some_file_list, some_error =ssh.sudo_command('chown hduser:hadoop ' + dest_filename)
-        debug_print(some_file_list)
-        debug_print(some_error)
     else:
         return -6
     
@@ -123,13 +114,12 @@ def get_file_content(dest_filename, ip = None):
     
     # get file from master...
     some_file_list, some_error = ssh.sudo_command(get_file_command)
-    debug_print(some_file_list)
-    debug_print(some_error)
     
     return some_file_list
 
 def update_hostname(ip, newName, vmID):
-        # init stuff for ssh
+    debug_print('calling update_hostname for ip: ' + str(ip) + ', with new name: ' + str(newName))
+    # init stuff for ssh
     ssh = SSHWrapper.SSHWrapper(ip)
     
     filename = config.DEFAULT_LOCAL_HOSTNAME_FILENAME
@@ -143,21 +133,25 @@ def update_hostname(ip, newName, vmID):
     ssh.put_sftp(filename, filename)
     
     # copy from /home/cloud to /etc/hostname in slave
-    debug_print('trying to mv from ' + filename + ' to ' + dest_filename)
     ssh.sudo_command('mv -f '+filename+' '+dest_filename)
     
     # restart machine
-    restart_machine(vmID)
+    restart_machine(vmID, ip)
     
     
-def restart_machine(vmID):
+def restart_machine(vmID, ip):
+    debug_print('calling restart_machine for: ' +str(vmID) + ' with ip: '+str(ip))
     result = api.rebootVirtualMachine({'id':vmID})
-    
+
     waiting = waitForAsync(result.get('jobid'))
     
     if waiting != True: # whoops something went wrong!
         return waiting
         
+    # make sure connection is valid for machine
+    SSHWrapper.SSHWrapper(ip)
+    
+    debug_print('finish restarting machine: ' + str(vmID))
     return True
 
 def get_vm_id_by_name(slaveName):

@@ -1,5 +1,6 @@
 __author__ = 'walthermaciel'
 import time
+import datetime
 
 import upsize
 import downsize
@@ -15,32 +16,24 @@ from config import CPU_WEIGHT
 from config import HIGH_STATE_PERCENTAGE
 from config import LOW_STATE_PERCENTAGE
 from config import THRESHOLD
-from config import LOG_FILE_PATH
-
-
-log_fp = None
+from config import BALANCER_LOG_FILE_PATH
 
 
 def init_log(path):
-    global log_fp
     log_fp = open(path, 'w')
     if log_fp is None:
         print 'Fatal error, log file could not be opened'
         exit()
     else:
         log_fp.write('time,load,state,patience\n')
-        return log_fp
-
-
-def close_log():
-    global log_fp
-    log_fp.close()
+        log_fp.close()
 
 
 def log_load(load, state, patience):
-    global log_fp
-    timestamp = time.time()
-    log_fp.write('%f,%f,%s,%d\n'.format(timestamp, load, state, patience))
+    timestamp = datetime.datetime.now().isoformat()
+    log_fp = open(BALANCER_LOG_FILE_PATH, 'a')
+    log_fp.write(timestamp + ',' + state + ',' + str(patience) + '\n')
+    log_fp.close()
 
 
 def compute_cluster_load(w_queue = None, w_memory = None, w_cpu = None):
@@ -89,11 +82,13 @@ def upsize_cluster():
 
 
 def low_state(low_threshold, patience):
+    global g_patience
     util.debug_print('LOW state with patience: ' + str(patience))
     load = compute_cluster_load()
     while load < low_threshold:
         patience -= 1
-        log_load(load, 'low', patience)
+        # log_load(load, 'low', patience)
+        g_patience = patience
         time.sleep(SLEEP)
         
         util.debug_print('patience: ' + str(patience) + ',\tload: ' + str(load))
@@ -109,6 +104,8 @@ def low_state(low_threshold, patience):
 
 
 def high_state(threshold, high_threshold, patience):
+    global g_patience
+    global g_state
     util.debug_print('HIGH state with patience: ' + str(patience))
     load = compute_cluster_load()
 
@@ -116,12 +113,15 @@ def high_state(threshold, high_threshold, patience):
         if load > threshold:
             patience -= 2
             log_load(load, 'very high', patience)
+            g_state = 'very high'
         else:
             patience -= 1
             log_load(load, 'high', patience)
+            g_state = 'high'
+
+        g_patience = patience
 
         time.sleep(SLEEP)
-        
         util.debug_print('patience: ' + str(patience) + ',\tload: ' + str(load))
         if patience < 0:
             util.debug_print('patience is 0, UPSIZE!')
@@ -135,6 +135,9 @@ def high_state(threshold, high_threshold, patience):
 
 
 def main(threshold):
+    global g_patience
+    global g_state
+
     high_threshold = HIGH_STATE_PERCENTAGE * threshold
     low_threshold = LOW_STATE_PERCENTAGE * threshold
     patience = INITIAL_PATIENCE
@@ -143,7 +146,7 @@ def main(threshold):
 
     last_state = None
 
-    init_log(LOG_FILE_PATH)
+    init_log(BALANCER_LOG_FILE_PATH)
 
     util.debug_print('Starting the main load balancer loop...')
     while True:

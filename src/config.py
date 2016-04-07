@@ -5,6 +5,7 @@ Created on Mar 21, 2016
 '''
 ###### GENERAL STUFF ######
 DEBUG = True
+ASYNC_SLEEP_FOR = 1
 
 ###### USED FOR SLAVE NAME STUFF ######
 DEFAULT_GLOBAL_COUNTER_FILENAME = '/home/cloud/cmpt733_global_counter.txt'
@@ -50,4 +51,5 @@ CPU_WEIGHT = 1
 HIGH_STATE_PERCENTAGE = 0.75
 LOW_STATE_PERCENTAGE = 0.25
 THRESHOLD = 0.8
-LOG_FILE_PATH = '~/load_log.csv'
+LOG_FILE_PATH = '/home/cloud/load_log.csv'
+BALANCER_LOG_FILE_PATH = '/home/cloud/balancer_load_log.csv'
